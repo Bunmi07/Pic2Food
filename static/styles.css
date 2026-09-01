@@ -1,0 +1,213 @@
+:root {
+  --bg: #1a1512;
+  --card: #2a221d;
+  --ink: #f6efe8;
+  --muted: #c4b6a8;
+  --accent: #e4572e;
+  --ok: #c5d86d;
+  --warn: #f4a261;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.1rem 3rem;
+}
+
+.top h1 {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0.2rem 0 1.1rem;
+}
+
+.eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin: 0;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+label,
+legend {
+  display: block;
+  font-size: 0.92rem;
+  margin-bottom: 0.75rem;
+}
+
+input,
+select {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 12px;
+  background: #3a3029;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.45rem;
+}
+
+.chips button {
+  background: #3a3029;
+  color: var(--ink);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.95rem;
+}
+
+.chips button.on {
+  background: var(--accent);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.preview {
+  min-height: 180px;
+  border-radius: 14px;
+  background: #3a3029;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.preview img {
+  width: 100%;
+  display: block;
+}
+
+.preview.empty p {
+  color: var(--muted);
+  padding: 1rem;
+  text-align: center;
+}
+
+.snap {
+  display: block;
+  text-align: center;
+  background: #4a3c34;
+  border-radius: 999px;
+  padding: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.snap input {
+  display: none;
+}
+
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: white;
+}
+
+.primary:disabled {
+  opacity: 0.4;
+}
+
+.status {
+  min-height: 1.4rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.honesty {
+  background: #3a3029;
+  border-left: 4px solid var(--warn);
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.honesty.ok {
+  border-left-color: var(--ok);
+}
+
+.ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.ingredients li {
+  background: #3a3029;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.ingredients li.low {
+  opacity: 0.55;
+}
+
+.recipe {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.recipe h3 {
+  margin: 0 0 0.25rem;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 0.7rem;
+}
+
+.recipe ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.recipe li {
+  margin-bottom: 0.4rem;
+}

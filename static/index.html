@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#1a1512" />
+    <title>Pic2Food</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="eyebrow">Pic2Food</p>
+        <h1>What’s in the fridge. What you can actually cook.</h1>
+      </header>
+
+      <section id="setup" class="card">
+        <label>
+          How do you cook?
+          <select id="cooking-level">
+            <option value="beginner" selected>Beginner — keep it simple</option>
+            <option value="comfortable">Comfortable — I can follow a recipe</option>
+            <option value="advanced">Advanced — I want more technique</option>
+          </select>
+        </label>
+
+        <fieldset>
+          <legend>How hungry / how much time?</legend>
+          <div class="chips" id="time-chips">
+            <button type="button" data-minutes="15">15 min</button>
+            <button type="button" class="on" data-minutes="20">20 min</button>
+            <button type="button" data-minutes="30">30 min</button>
+            <button type="button" data-minutes="45">45 min</button>
+          </div>
+        </fieldset>
+
+        <label>
+          Preferences
+          <input
+            id="preferences"
+            type="text"
+            placeholder="e.g. no pork, not spicy, vegetarian"
+          />
+        </label>
+
+        <label>
+          Pantry staples you already have
+          <input
+            id="pantry"
+            type="text"
+            value="salt, pepper, oil, water"
+          />
+        </label>
+
+        <p class="hint">We’ll only cook with what we can see, plus this pantry list. If that’s not a meal, we’ll say so.</p>
+      </section>
+
+      <section class="card camera-card">
+        <div id="preview-wrap" class="preview empty">
+          <img id="preview" alt="Fridge photo preview" hidden />
+          <p id="preview-empty">Take a photo of the food you have. Closer is better than a dark wide shot.</p>
+        </div>
+        <label class="snap">
+          Take fridge photo
+          <input id="photo" type="file" accept="image/*" capture="environment" />
+        </label>
+      </section>
+
+      <button id="go" type="button" class="primary" disabled>Get honest recipes</button>
+      <p id="status" class="status" role="status"></p>
+
+      <section id="result" hidden></section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
