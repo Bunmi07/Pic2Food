@@ -1,0 +1,138 @@
+.app {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.1rem 3rem;
+}
+
+.top h1 {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0.2rem 0 1.1rem;
+}
+
+.eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin: 0;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.6rem;
+}
+
+.card p,
+.card li {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.card p {
+  margin: 0 0 0.75rem;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.card li {
+  margin-bottom: 0.4rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0.75rem 0 0;
+}
+
+.preview {
+  min-height: 180px;
+  border-radius: 14px;
+  background: #3a3029;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.preview img {
+  width: 100%;
+  display: block;
+}
+
+.preview.empty p {
+  color: var(--muted);
+  padding: 1rem;
+  text-align: center;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.photo-pick,
+.photo-remove {
+  flex: 1 1 auto;
+  text-align: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photo-pick {
+  background: var(--accent);
+  color: #fff;
+}
+
+.photo-pick.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.photo-remove:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.photo-remove {
+  background: #4a3c34;
+  color: var(--ink);
+}
+
+.photo-error {
+  color: #f4a261;
+  font-size: 0.92rem;
+  margin: 0.75rem 0 0;
+  line-height: 1.4;
+}

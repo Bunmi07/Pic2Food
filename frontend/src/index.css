@@ -1,0 +1,28 @@
+:root {
+  --bg: #1a1512;
+  --card: #2a221d;
+  --ink: #f6efe8;
+  --muted: #c4b6a8;
+  --accent: #e4572e;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+#root {
+  min-height: 100%;
+}
