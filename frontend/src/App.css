@@ -1,0 +1,300 @@
+.app {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.1rem 3rem;
+}
+
+.top h1 {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0.2rem 0 1.1rem;
+}
+
+.eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin: 0;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.6rem;
+}
+
+.card p,
+.card li {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.card p {
+  margin: 0 0 0.75rem;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.card li {
+  margin-bottom: 0.4rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0.75rem 0 0;
+}
+
+.preview {
+  min-height: 180px;
+  border-radius: 14px;
+  background: #3a3029;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.preview img {
+  width: 100%;
+  display: block;
+}
+
+.preview.empty p {
+  color: var(--muted);
+  padding: 1rem;
+  text-align: center;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.photo-pick,
+.photo-remove {
+  flex: 1 1 auto;
+  text-align: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.photo-pick {
+  background: var(--accent);
+  color: #fff;
+}
+
+.photo-pick.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.photo-remove:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.photo-remove {
+  background: #4a3c34;
+  color: var(--ink);
+}
+
+.photo-error {
+  color: #f4a261;
+  font-size: 0.92rem;
+  margin: 0.75rem 0 0;
+  line-height: 1.4;
+}
+
+.candidate-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.candidate-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid #3a3029;
+}
+
+.candidate-main {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.candidate-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.candidate-check input[type='checkbox'] {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.candidate-check input[type='checkbox']:disabled {
+  opacity: 0.4;
+}
+
+.guess-list {
+  border: 0;
+  margin: 0.5rem 0 0 1.85rem;
+  padding: 0;
+}
+
+.guess-list legend {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-bottom: 0.35rem;
+  padding: 0;
+}
+
+.guess-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  padding: 0.25rem 0;
+}
+
+.guess-option input {
+  accent-color: var(--accent);
+}
+
+.card .candidate-note {
+  flex: 1 1 12rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0.35rem 0 0;
+}
+
+.candidate-edit {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  background: #3a3029;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.45rem 0.6rem;
+}
+
+.candidate-row-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.text-action {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.35rem 0.2rem;
+}
+
+.candidate-tag {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.add-ingredient {
+  margin: 0.5rem 0 1rem;
+}
+
+.add-ingredient label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.add-ingredient-row {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.add-ingredient-row input {
+  flex: 1 1 auto;
+  font: inherit;
+  color: var(--ink);
+  background: #3a3029;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.75rem 0.8rem;
+}
+
+.primary-action {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+}
+
+.primary-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inventory {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #3a3029;
+}
+
+.inventory h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.inventory ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+}
