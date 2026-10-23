@@ -2,12 +2,16 @@ import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { IMAGE_ACCEPT, validateImageFile } from '../imageValidation'
 import { ImagePrepareError, prepareImageFile } from '../prepareImage'
 
-type SelectedPhoto = {
+export type SelectedPhoto = {
   file: File
   previewUrl: string
 }
 
-export function PhotoCapture() {
+type PhotoCaptureProps = {
+  onPhotoChange: (photo: SelectedPhoto | null) => void
+}
+
+export function PhotoCapture({ onPhotoChange }: PhotoCaptureProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const previewUrlRef = useRef<string | null>(null)
@@ -44,6 +48,7 @@ export function PhotoCapture() {
     setPhoto(null)
     setError(null)
     clearInputValue()
+    onPhotoChange(null)
   }
 
   async function onFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -68,7 +73,9 @@ export function PhotoCapture() {
       revokeCurrentPreview()
       const previewUrl = URL.createObjectURL(prepared)
       previewUrlRef.current = previewUrl
-      setPhoto({ file: prepared, previewUrl })
+      const nextPhoto = { file: prepared, previewUrl }
+      setPhoto(nextPhoto)
+      onPhotoChange(nextPhoto)
     } catch (caught) {
       const message =
         caught instanceof ImagePrepareError
@@ -144,13 +151,13 @@ export function PhotoCapture() {
       {photo ? (
         <p className="hint">
           Photo is prepared in memory with metadata removed and size reduced.
-          Confirmation and recipe search are not wired yet.
+          Check each guess below that you actually have, then confirm.
         </p>
       ) : (
         <p className="hint">
           Prefer JPEG or PNG. On iPhone, “Take photo” usually works; library
-          HEIC files often cannot be prepared in the browser. Confirmation and
-          recipe search are not wired yet.
+          HEIC files often cannot be prepared in the browser. After a photo is
+          ready, check each guess you actually have.
         </p>
       )}
     </section>

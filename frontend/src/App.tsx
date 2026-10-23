@@ -1,7 +1,66 @@
+import { useRef, useState } from 'react'
 import './App.css'
+import { IngredientConfirmation } from './components/IngredientConfirmation'
 import { PhotoCapture } from './components/PhotoCapture'
+import {
+  rowsFromCandidates,
+  type CandidateRow,
+  type ConfirmedInventory,
+} from './confirmedInventory'
+import { logEvaluationEvent } from './eventLog'
+import { loadIngredientCandidates } from './loadIngredientCandidates'
 
 function App() {
+  const loadGeneration = useRef(0)
+  const [hasPhoto, setHasPhoto] = useState(false)
+  const [candidateStatus, setCandidateStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle')
+  const [candidateError, setCandidateError] = useState<string | null>(null)
+  const [rows, setRows] = useState<CandidateRow[]>([])
+  const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
+
+  async function handlePhotoChange(photo: { file: File; previewUrl: string } | null) {
+    const generation = ++loadGeneration.current
+    if (candidateStatus === 'ready' && !inventory) {
+      logEvaluationEvent({ type: 'confirmation_abandoned' })
+    }
+    setInventory(null)
+    setCandidateError(null)
+
+    if (!photo) {
+      setHasPhoto(false)
+      setRows([])
+      setCandidateStatus('idle')
+      return
+    }
+
+    setHasPhoto(true)
+    setCandidateStatus('loading')
+    setRows([])
+
+    const result = await loadIngredientCandidates()
+    if (generation !== loadGeneration.current) {
+      return
+    }
+
+    if (!result.ok) {
+      setCandidateStatus('error')
+      setCandidateError(result.message)
+      return
+    }
+
+    for (const item of result.items) {
+      logEvaluationEvent({
+        type: 'candidate_presented',
+        candidateId: item.id,
+        name: item.kind === 'named' ? item.name : item.description,
+      })
+    }
+    setRows(rowsFromCandidates(result.items))
+    setCandidateStatus('ready')
+  }
+
   return (
     <main className="app">
       <header className="top">
@@ -26,7 +85,32 @@ function App() {
         </ul>
       </section>
 
-      <PhotoCapture />
+      <PhotoCapture onPhotoChange={handlePhotoChange} />
+
+      {candidateStatus === 'loading' ? (
+        <section className="card" aria-live="polite" aria-busy="true">
+          <h2>Possible ingredients</h2>
+          <p>Loading ingredient guesses…</p>
+        </section>
+      ) : null}
+
+      {candidateStatus === 'error' && candidateError ? (
+        <section className="card" aria-live="assertive">
+          <h2>Possible ingredients</h2>
+          <p className="photo-error" role="alert">
+            {candidateError}
+          </p>
+        </section>
+      ) : null}
+
+      {hasPhoto && candidateStatus === 'ready' ? (
+        <IngredientConfirmation
+          rows={rows}
+          onRowsChange={setRows}
+          inventory={inventory}
+          onInventoryChange={setInventory}
+        />
+      ) : null}
     </main>
   )
 }

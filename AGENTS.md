@@ -238,11 +238,12 @@ Before adding commands here, inspect the repository and confirm the actual setup
 Document only commands that have been verified to work:
 
 - Backend (Python) Environment setup: `[to be confirmed]`
-- Frontend (React + TypeScript) environment setup: `[to be confirmed]`
+- Frontend (React + TypeScript) environment setup: `cd frontend && npm install`
 - Local application(backend): `[to be confirmed]`
-- Local application(frontend): `[to be confirmed]`
-- Unit tests: `[to be confirmed]`
-- Formatting and linting: `[to be confirmed]`
+- Local application(frontend): `cd frontend && npm run dev`
+- Unit tests (frontend, Node built-in test runner, Node 24+): `cd frontend && npm test`
+- Type check and production build (frontend): `cd frontend && npm run build`
+- Linting (frontend): `cd frontend && npm run lint`
 
 This project intentionally uses two environments: a Python backend and a React + TypeScript frontend. Both must be scaffolded and verified before their commands are documented. Do not invent commands or add tooling beyond what the chosen stack requires.
 
