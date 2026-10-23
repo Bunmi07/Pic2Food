@@ -105,8 +105,8 @@ export function IngredientConfirmation({
             <li key={row.id} className="candidate-row">
               {row.kind === 'manual-entry' ? (
                 <p className="candidate-note">
-                  Couldn’t narrow this one down: {row.description}. If you have
-                  it, add it yourself below.
+                  We couldn’t identify one item. If you have something that
+                  isn’t listed, add it below.
                 </p>
               ) : (
                 <div className="candidate-main">

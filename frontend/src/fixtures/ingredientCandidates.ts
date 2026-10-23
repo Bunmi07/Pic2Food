@@ -14,9 +14,4 @@ export const INGREDIENT_CANDIDATE_FIXTURE = [
     description: 'Wrapped pale block',
     guesses: ['butter', 'cream cheese', 'tofu'],
   },
-  {
-    id: 'jar-back-shelf',
-    description: 'Jar at the back',
-    guesses: ['jam', 'salsa', 'pickles', 'tomato sauce', 'honey'],
-  },
 ]

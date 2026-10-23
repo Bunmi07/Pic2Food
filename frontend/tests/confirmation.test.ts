@@ -70,14 +70,22 @@ describe('ambiguous candidates', () => {
     assert.deepEqual(ambiguous?.guesses, ['butter', 'cream cheese', 'tofu'])
   })
 
+  const overflowInput = [
+    { id: 'unclear', description: 'Unclear item', guesses: ['a', 'b', 'c', 'd'] },
+  ]
+
   test('more than three guesses route to manual entry', () => {
-    const overflow = fixtureRows().find((row) => row.id === 'jar-back-shelf')
-    assert.equal(overflow?.kind, 'manual-entry')
-    assert.deepEqual(overflow?.guesses, [])
+    const result = parseIngredientCandidates(overflowInput)
+    assert.ok(result.ok)
+    const [overflow] = rowsFromCandidates(result.items)
+    assert.equal(overflow.kind, 'manual-entry')
+    assert.deepEqual(overflow.guesses, [])
   })
 
   test('manual-entry items never enter inventory, even if forced checked', () => {
-    const rows = check(fixtureRows(), 'jar-back-shelf', { name: 'jam' })
+    const result = parseIngredientCandidates(overflowInput)
+    assert.ok(result.ok)
+    const rows = check(rowsFromCandidates(result.items), 'unclear', { name: 'a' })
     assert.equal(countConfirmedRows(rows), 0)
     assert.equal(createConfirmedInventory(rows).ok, false)
   })
