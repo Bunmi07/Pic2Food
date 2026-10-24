@@ -1,3 +1,12 @@
+/**
+ * Gets ingredient guesses for a photo and turns every possible answer into
+ * one result type the screen can show.
+ *
+ * Normally it sends the photo to the backend (/api/ingredient-candidates).
+ * With VITE_CANDIDATE_SOURCE=fixture it uses the saved sample list instead,
+ * so the app works without an OpenAI key. Either way the guesses are
+ * validated here before the checklist sees them.
+ */
 import { INGREDIENT_CANDIDATE_FIXTURE } from './fixtures/ingredientCandidates.ts'
 
 export const MAX_GUESSES_PER_ITEM = 3
@@ -49,6 +58,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     'Ingredient detection isn’t set up yet (the server has no OpenAI key).',
 }
 
+/** Validate a raw list of guesses. Any malformed entry fails the whole list. */
 export function parseIngredientCandidates(raw: unknown): ParseResult {
   if (!Array.isArray(raw) || raw.length === 0) {
     return { ok: false, message: MALFORMED_MESSAGE }
@@ -140,6 +150,7 @@ export function interpretCandidateResponse(
   }
 }
 
+/** Send the prepared photo to the backend, giving up after CLIENT_TIMEOUT_MS. */
 export async function requestIngredientCandidates(
   photo: File,
   fetchImpl: typeof fetch = fetch,
@@ -171,6 +182,7 @@ export async function requestIngredientCandidates(
   }
 }
 
+/** What the app calls: live vision by default, the sample list in fixture mode. */
 export async function loadIngredientCandidates(
   photo: File,
 ): Promise<CandidateLoadResult> {

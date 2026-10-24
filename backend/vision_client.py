@@ -1,3 +1,14 @@
+"""The only file that talks to OpenAI.
+
+Takes one prepared JPEG, sends it to the vision model together with the
+prompt and output schema from vision_prompt.py, and returns the model's raw
+JSON text. It does not interpret that text; candidates.py validates it.
+
+Failures are turned into two plain errors the API layer understands:
+VisionTimeoutError (took longer than the configured timeout) and
+VisionCallError (anything else went wrong, including a refusal).
+"""
+
 import base64
 
 import openai
@@ -12,11 +23,11 @@ from backend.vision_prompt import (
 
 
 class VisionTimeoutError(Exception):
-    pass
+    """The model did not answer within VISION_TIMEOUT_SECONDS."""
 
 
 class VisionCallError(Exception):
-    pass
+    """The model call failed, was refused, or returned nothing."""
 
 
 def request_ingredient_candidates(image_jpeg: bytes, settings: VisionSettings) -> str:

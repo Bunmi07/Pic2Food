@@ -1,3 +1,9 @@
+"""Tests for the ingredient-candidate endpoint and its parts.
+
+The vision model is always replaced with a stand-in, so these tests never
+make paid OpenAI calls.
+"""
+
 import json
 import os
 import unittest

@@ -179,6 +179,7 @@ Use an LLM only for bounded tasks where it adds value. LLM output must not bypas
 - Python is the chosen backend language. React with TypeScript is the chosen frontend stack. Maintain explicit, validated data contracts across the frontend-backend boundary.
 - The React and TypeScript choice is intentional because the confirmation interface will contain multiple interactive states and structured data objects. Do not migrate to another frontend framework without explicit approval.
 - Use clear names and explicit error handling.
+- Start every source file with a short plain-language comment saying what the file is for and how it fits the flow. Add a one- or two-line comment to key classes and functions (the ones other files call, or that enforce a product rule). Skip comments on small helpers whose names already say what they do. Keep these comments current when behavior changes.
 - Keep model prompts separate from request-handling and business logic.
 - Validate all model and external API responses before downstream use.
 - Do not install new packages without explicit human approval.

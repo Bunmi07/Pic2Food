@@ -1,3 +1,7 @@
+/**
+ * Tests for the confirmation rules: guesses start unchecked, only checked
+ * items reach the inventory, the three-guess limit, and evaluation events.
+ */
 import assert from 'node:assert/strict'
 import { beforeEach, describe, test } from 'node:test'
 import {

@@ -1,4 +1,7 @@
-"""Prompt and output schema for the ingredient-candidate vision task.
+"""What we tell the vision model, and the exact answer format we require.
+
+Kept separate from the code that calls the model so the instructions can be
+reviewed and changed on their own.
 
 Allowed input: one downscaled, metadata-stripped JPEG. No user text.
 Permitted output: image_status plus a list of items, each with a short
@@ -6,6 +9,8 @@ visual label and 0-3 candidate ingredient names. Everything returned is a
 guess that the user must confirm; the server validates it before use.
 """
 
+# The model's rules: what it may propose, what it must never claim, and how
+# to report "not food" versus "can't make anything out".
 VISION_SYSTEM_PROMPT = """You propose possible food ingredients visible in one photo for a cooking app.
 A person will review and confirm every item. Your output is a list of guesses, not facts.
 
@@ -25,6 +30,8 @@ Rules:
 
 VISION_USER_TEXT = "List the possible ingredients visible in this photo."
 
+# JSON shape OpenAI is forced to follow (structured outputs). Anything outside
+# this shape is rejected by OpenAI before it reaches us.
 VISION_RESPONSE_SCHEMA = {
     "name": "ingredient_candidates",
     "strict": True,

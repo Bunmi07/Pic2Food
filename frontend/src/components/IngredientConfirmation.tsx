@@ -1,3 +1,12 @@
+/**
+ * The ingredient checklist where the user decides what they actually have.
+ *
+ * Detected guesses start unchecked. The user checks, corrects, removes, or
+ * adds items, then presses Confirm. Only checked items become the confirmed
+ * inventory. Ambiguous items need a guess picked before they can be checked,
+ * and items the model couldn't narrow down point the user to manual entry.
+ * Each action is logged as its own evaluation event.
+ */
 import { useId, useRef, useState, type FormEvent } from 'react'
 import {
   canConfirmRow,

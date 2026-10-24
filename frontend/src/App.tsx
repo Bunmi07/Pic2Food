@@ -1,3 +1,12 @@
+/**
+ * The whole screen, top to bottom: photo tips, photo capture, then either a
+ * loading message, a failure message, or the ingredient confirmation list.
+ *
+ * Owns the flow between those steps. When a photo is ready it asks for
+ * ingredient guesses, logs which ones were shown, and hands them to
+ * IngredientConfirmation. The confirmed inventory lives here so later steps
+ * (recipe search) can use it.
+ */
 import { useRef, useState } from 'react'
 import './App.css'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
@@ -27,6 +36,10 @@ function App() {
   const [rows, setRows] = useState<CandidateRow[]>([])
   const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
 
+  /**
+   * Fetch guesses for a photo and move the screen to ready or failed. If the
+   * user replaces the photo mid-request, the older answer is discarded.
+   */
   async function loadCandidates(photo: SelectedPhoto) {
     const generation = ++loadGeneration.current
     setInventory(null)

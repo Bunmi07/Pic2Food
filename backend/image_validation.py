@@ -24,6 +24,7 @@ def validate_jpeg_upload(data: bytes) -> Optional[str]:
 
 
 def jpeg_contains_exif(data: bytes) -> bool:
+    """True if the JPEG still carries an Exif block (camera, location, time)."""
     offset = 2
     while offset + 4 <= len(data):
         if data[offset] != 0xFF:

@@ -1,3 +1,11 @@
+/**
+ * The rules for turning guesses into a confirmed inventory. No screen code.
+ *
+ * A CandidateRow is one line in the checklist. The ConfirmedInventory is what
+ * later steps (recipe search) are allowed to use, and it only ever contains
+ * rows the user checked. Each confirmed item records whether it was accepted
+ * as guessed, corrected, or added by hand.
+ */
 import type { EvaluationEvent } from './eventLog.ts'
 import type { IngredientCandidate } from './loadIngredientCandidates.ts'
 
@@ -25,6 +33,7 @@ export type ConfirmedInventory = {
   ingredients: ConfirmedIngredient[]
 }
 
+/** Build checklist rows from detected guesses. Every row starts unchecked. */
 export function rowsFromCandidates(items: IngredientCandidate[]): CandidateRow[] {
   return items.map((item) => {
     if (item.kind === 'named') {
@@ -52,6 +61,7 @@ export function rowsFromCandidates(items: IngredientCandidate[]): CandidateRow[]
   })
 }
 
+/** A row the user typed in. Checked by default, since the user entered it. */
 export function createManualRow(id: string, name: string): CandidateRow {
   const trimmed = name.trim()
   return {
@@ -75,6 +85,7 @@ export function countConfirmedRows(rows: CandidateRow[]): number {
   return rows.filter((row) => row.confirmed && canConfirmRow(row)).length
 }
 
+/** Was this item accepted as guessed, corrected by the user, or typed in? */
 export function sourceForRow(row: CandidateRow): InventorySource {
   if (row.origin === 'manual') {
     return 'manual'
@@ -86,6 +97,10 @@ export function sourceForRow(row: CandidateRow): InventorySource {
   return name === row.originalName.trim() ? 'confirmed' : 'corrected'
 }
 
+/**
+ * The gate before recipe search: keep only checked rows with a real name.
+ * Fails if nothing is checked, so unconfirmed guesses can't move downstream.
+ */
 export function createConfirmedInventory(
   rows: CandidateRow[],
 ): { ok: true; inventory: ConfirmedInventory } | { ok: false; message: string } {

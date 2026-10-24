@@ -1,4 +1,8 @@
-"""Validate untrusted vision output into the ingredient-candidate contract.
+"""Checks the vision model's answer before anything else uses it.
+
+Model output is untrusted. This file rejects malformed answers, trims and
+de-duplicates names, enforces the three-guess limit, and drops any fields
+we didn't ask for.
 
 Output shape matches the frontend fixture:
 - {"id", "name"}                      one clear guess
@@ -23,6 +27,10 @@ class VisionOutputError(ValueError):
 
 
 def parse_vision_output(raw: str) -> Dict[str, Any]:
+    """Turn the model's raw JSON text into {"status": ..., "items": [...]}.
+
+    Raises VisionOutputError when the answer can't be trusted at all.
+    """
     try:
         data = json.loads(raw)
     except (TypeError, ValueError) as exc:

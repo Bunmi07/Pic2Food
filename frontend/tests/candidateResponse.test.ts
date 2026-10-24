@@ -1,3 +1,7 @@
+/**
+ * Tests for handling the backend's answers: guesses, "not food",
+ * "unreadable", timeouts, and errors. The network is faked; no real calls.
+ */
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import { rowsFromCandidates } from '../src/confirmedInventory.ts'

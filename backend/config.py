@@ -1,3 +1,9 @@
+"""Backend settings read from environment variables (the .env file).
+
+Keeps the OpenAI key, the model name, and the vision timeout out of the
+code, so they can change without editing it.
+"""
+
 import os
 from dataclasses import dataclass
 from typing import Optional
@@ -14,6 +20,7 @@ class VisionSettings:
 
 
 def load_vision_settings() -> VisionSettings:
+    """Read vision settings, falling back to defaults for missing or bad values."""
     return VisionSettings(
         api_key=os.getenv("OPENAI_API_KEY") or None,
         model=os.getenv("OPENAI_VISION_MODEL") or DEFAULT_VISION_MODEL,
