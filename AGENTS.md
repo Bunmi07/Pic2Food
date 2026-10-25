@@ -152,7 +152,7 @@ The model may:
 - Propose possible ingredients visible in an uploaded image
 - Retrieval resolves to one of three states: supported match, near match (fails threshold by a small, defined missing-ingredient margin), or no supported match (abstain with a next step).
 - Near match reuses the existing missing-ingredient calculation; it changes only the display cutoff. It must not relax any hard constraint.
-- Feasibility threshold and near-match margin are configurable values, not hard-coded constants.
+- Feasibility threshold and near-match margin are configurable values, not hard-coded constants. Starting feasibility threshold: a recipe is a supported match when it is missing 2 or fewer ingredients (after pantry staples). Near-match margin: `[to be confirmed]`. A user-adjustable threshold is a possible future feature, not MVP scope.
 - Identify ambiguous image regions
 - Return a limited set of ingredient candidates
 - Express uncertainty or decline to identify an item
@@ -179,6 +179,7 @@ Use an LLM only for bounded tasks where it adds value. LLM output must not bypas
 - Python is the chosen backend language. React with TypeScript is the chosen frontend stack. Maintain explicit, validated data contracts across the frontend-backend boundary.
 - The React and TypeScript choice is intentional because the confirmation interface will contain multiple interactive states and structured data objects. Do not migrate to another frontend framework without explicit approval.
 - Use clear names and explicit error handling.
+- Start every source file with a short plain-language comment saying what the file is for and how it fits the flow. Add a one- or two-line comment to key classes and functions (the ones other files call, or that enforce a product rule). Skip comments on small helpers whose names already say what they do. Keep these comments current when behavior changes.
 - Keep model prompts separate from request-handling and business logic.
 - Validate all model and external API responses before downstream use.
 - Do not install new packages without explicit human approval.
@@ -192,8 +193,9 @@ Before editing multiple files, provide a short implementation plan. After implem
 - Approved evaluation events may be recorded locally using structured, non-image data. Permitted events include candidate presented, candidate confirmed, candidate corrected, candidate removed, manual ingredient added, and confirmation abandoned.
 - Evaluation events must not contain image pixels, image metadata, API keys, or unnecessary personal data.
 - Do not add external analytics, external event logging, or image persistence without documenting the data involved and obtaining explicit approval.
-- The vision call must have a defined timeout and failure path. Do not retry silently (retry doubles cost); retry, if any, is explicit. Timeout value is `[to be confirmed after baseline]`.
-- Confirm the vision provider's data-retention/training terms; the no-retention guarantee must cover the full path, not just first-party code.
+- The vision call must have a defined timeout and failure path. Do not retry silently (retry doubles cost); retry, if any, is explicit. Timeout starts at 15 seconds, configurable, and is revisited after baseline measurement.
+- Vision provider for the MVP is OpenAI (decided Oct 2026). Per OpenAI's published API terms, inputs are not used for training and are kept in abuse-monitoring logs for up to 30 days. This is accepted for the MVP and test users only. Before real users: revisit Zero Data Retention (requires OpenAI approval) or an alternative provider, and disclose to users that photos are sent to a third party.
+- First-party code never persists images; the 30-day provider retention above is the only accepted exception.
 - Never hardcode, print, log, expose, or commit API keys or credentials.
 - Never place server-side API keys in browser-accessible code.
 - Do not read or modify `.env` files unless the user explicitly requests it.
@@ -237,9 +239,11 @@ Before adding commands here, inspect the repository and confirm the actual setup
 
 Document only commands that have been verified to work:
 
-- Backend (Python) Environment setup: `[to be confirmed]`
+- Backend (Python) Environment setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, then copy `.env.example` to `.env` and add `OPENAI_API_KEY`
 - Frontend (React + TypeScript) environment setup: `cd frontend && npm install`
-- Local application(backend): `[to be confirmed]`
+- Local application(backend): `.venv/bin/uvicorn server:app --port 8000` (the frontend dev server proxies `/api` to it)
+- Frontend without the vision model (saved sample candidates): `cd frontend && VITE_CANDIDATE_SOURCE=fixture npm run dev`
+- Unit tests (backend, standard-library unittest, model calls mocked): `.venv/bin/python -m unittest discover -s backend/tests -t .`
 - Local application(frontend): `cd frontend && npm run dev`
 - Unit tests (frontend, Node built-in test runner, Node 24+): `cd frontend && npm test`
 - Type check and production build (frontend): `cd frontend && npm run build`

@@ -1,52 +1,60 @@
+/**
+ * The whole screen, top to bottom: photo tips, photo capture, then either a
+ * loading message, a failure message, or the ingredient confirmation list.
+ *
+ * Owns the flow between those steps. When a photo is ready it asks for
+ * ingredient guesses, logs which ones were shown, and hands them to
+ * IngredientConfirmation. The confirmed inventory lives here so later steps
+ * (recipe search) can use it.
+ */
 import { useRef, useState } from 'react'
 import './App.css'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
-import { PhotoCapture } from './components/PhotoCapture'
+import { PhotoCapture, type SelectedPhoto } from './components/PhotoCapture'
 import {
   rowsFromCandidates,
   type CandidateRow,
   type ConfirmedInventory,
 } from './confirmedInventory'
 import { logEvaluationEvent } from './eventLog'
-import { loadIngredientCandidates } from './loadIngredientCandidates'
+import {
+  loadIngredientCandidates,
+  type CandidateLoadResult,
+  type CandidateSource,
+} from './loadIngredientCandidates'
+
+type FailedLoad = Extract<CandidateLoadResult, { ok: false }>
 
 function App() {
   const loadGeneration = useRef(0)
-  const [hasPhoto, setHasPhoto] = useState(false)
+  const photoRef = useRef<SelectedPhoto | null>(null)
   const [candidateStatus, setCandidateStatus] = useState<
-    'idle' | 'loading' | 'ready' | 'error'
+    'idle' | 'loading' | 'ready' | 'failed'
   >('idle')
-  const [candidateError, setCandidateError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<FailedLoad | null>(null)
+  const [source, setSource] = useState<CandidateSource>('vision')
   const [rows, setRows] = useState<CandidateRow[]>([])
   const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
 
-  async function handlePhotoChange(photo: { file: File; previewUrl: string } | null) {
+  /**
+   * Fetch guesses for a photo and move the screen to ready or failed. If the
+   * user replaces the photo mid-request, the older answer is discarded.
+   */
+  async function loadCandidates(photo: SelectedPhoto) {
     const generation = ++loadGeneration.current
-    if (candidateStatus === 'ready' && !inventory) {
-      logEvaluationEvent({ type: 'confirmation_abandoned' })
-    }
     setInventory(null)
-    setCandidateError(null)
-
-    if (!photo) {
-      setHasPhoto(false)
-      setRows([])
-      setCandidateStatus('idle')
-      return
-    }
-
-    setHasPhoto(true)
-    setCandidateStatus('loading')
+    setFailure(null)
     setRows([])
+    setCandidateStatus('loading')
 
-    const result = await loadIngredientCandidates()
+    const result = await loadIngredientCandidates(photo.file)
     if (generation !== loadGeneration.current) {
       return
     }
 
     if (!result.ok) {
-      setCandidateStatus('error')
-      setCandidateError(result.message)
+      setFailure(result)
+      setCandidateStatus('failed')
       return
     }
 
@@ -57,8 +65,33 @@ function App() {
         name: item.kind === 'named' ? item.name : item.description,
       })
     }
+    setSource(result.source)
     setRows(rowsFromCandidates(result.items))
     setCandidateStatus('ready')
+  }
+
+  function handlePhotoChange(photo: SelectedPhoto | null) {
+    if (candidateStatus === 'ready' && !inventory) {
+      logEvaluationEvent({ type: 'confirmation_abandoned' })
+    }
+    photoRef.current = photo
+
+    if (!photo) {
+      loadGeneration.current += 1
+      setInventory(null)
+      setFailure(null)
+      setRows([])
+      setCandidateStatus('idle')
+      return
+    }
+
+    void loadCandidates(photo)
+  }
+
+  function retry() {
+    if (photoRef.current) {
+      void loadCandidates(photoRef.current)
+    }
   }
 
   return (
@@ -90,22 +123,34 @@ function App() {
       {candidateStatus === 'loading' ? (
         <section className="card" aria-live="polite" aria-busy="true">
           <h2>Possible ingredients</h2>
-          <p>Loading ingredient guesses…</p>
+          <p>Looking for ingredients in your photo…</p>
         </section>
       ) : null}
 
-      {candidateStatus === 'error' && candidateError ? (
+      {candidateStatus === 'failed' && failure ? (
         <section className="card" aria-live="assertive">
-          <h2>Possible ingredients</h2>
+          <h2>
+            {failure.reason === 'not_food'
+              ? 'No food found'
+              : failure.reason === 'unreadable'
+                ? 'Couldn’t identify anything'
+                : 'Something went wrong'}
+          </h2>
           <p className="photo-error" role="alert">
-            {candidateError}
+            {failure.message}
           </p>
+          {failure.canRetry ? (
+            <button type="button" className="primary-action" onClick={retry}>
+              Try again
+            </button>
+          ) : null}
         </section>
       ) : null}
 
-      {hasPhoto && candidateStatus === 'ready' ? (
+      {candidateStatus === 'ready' ? (
         <IngredientConfirmation
           rows={rows}
+          source={source}
           onRowsChange={setRows}
           inventory={inventory}
           onInventoryChange={setInventory}

@@ -1,3 +1,8 @@
+/**
+ * First check on a chosen photo, before any processing: is it an image, not
+ * empty, not too large, and not a HEIC file the browser can't read?
+ */
+
 /** Max original file size before accept (then canvas prepare downscales). */
 export const MAX_IMAGE_BYTES = 12 * 1024 * 1024
 
@@ -25,6 +30,7 @@ export function isHeicLike(file: File): boolean {
   return /\.(heic|heif)$/i.test(file.name)
 }
 
+/** Accept or reject a photo, with a message telling the user what to do next. */
 export function validateImageFile(file: File): ImageValidationResult {
   if (!file.type.startsWith('image/') && !isHeicLike(file)) {
     return {

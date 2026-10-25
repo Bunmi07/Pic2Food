@@ -1,3 +1,10 @@
+/**
+ * The photo card: take or choose a photo, preview it, replace or remove it.
+ *
+ * Every photo is checked (imageValidation.ts) and then shrunk and stripped of
+ * metadata (prepareImage.ts) before anything else sees it. Only that prepared
+ * copy is passed up to App through onPhotoChange.
+ */
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { IMAGE_ACCEPT, validateImageFile } from '../imageValidation'
 import { ImagePrepareError, prepareImageFile } from '../prepareImage'

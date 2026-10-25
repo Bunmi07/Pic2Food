@@ -1,3 +1,9 @@
+/**
+ * Makes the copy of the photo the app actually uses: shrunk to at most
+ * 1600px and re-saved as JPEG, which removes location and camera data.
+ * The original camera file is never kept or uploaded.
+ */
+
 /** Longest edge after prepare. Full-resolution phone photos are not kept. */
 export const MAX_IMAGE_EDGE_PX = 1600
 

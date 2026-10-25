@@ -1,3 +1,12 @@
+/**
+ * The ingredient checklist where the user decides what they actually have.
+ *
+ * Detected guesses start unchecked. The user checks, corrects, removes, or
+ * adds items, then presses Confirm. Only checked items become the confirmed
+ * inventory. Ambiguous items need a guess picked before they can be checked,
+ * and items the model couldn't narrow down point the user to manual entry.
+ * Each action is logged as its own evaluation event.
+ */
 import { useId, useRef, useState, type FormEvent } from 'react'
 import {
   canConfirmRow,
@@ -9,9 +18,11 @@ import {
   type ConfirmedInventory,
 } from '../confirmedInventory'
 import { logEvaluationEvent } from '../eventLog'
+import type { CandidateSource } from '../loadIngredientCandidates'
 
 type IngredientConfirmationProps = {
   rows: CandidateRow[]
+  source: CandidateSource
   onRowsChange: (rows: CandidateRow[]) => void
   inventory: ConfirmedInventory | null
   onInventoryChange: (inventory: ConfirmedInventory | null) => void
@@ -19,6 +30,7 @@ type IngredientConfirmationProps = {
 
 export function IngredientConfirmation({
   rows,
+  source,
   onRowsChange,
   inventory,
   onInventoryChange,
@@ -92,9 +104,10 @@ export function IngredientConfirmation({
     <section className="card" aria-labelledby="candidate-heading">
       <h2 id="candidate-heading">Possible ingredients</h2>
       <p>
-        These are guesses from a saved sample list, not a live look at your
-        photo. Check each item you actually have. Unchecked items will not be
-        used.
+        {source === 'fixture'
+          ? 'These are guesses from a saved sample list, not a live look at your photo.'
+          : 'These are guesses from your photo, not facts — some may be wrong or missing.'}{' '}
+        Check each item you actually have. Unchecked items will not be used.
       </p>
 
       {rows.length === 0 ? (
