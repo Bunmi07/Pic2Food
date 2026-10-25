@@ -11,6 +11,9 @@ from typing import Optional
 DEFAULT_VISION_TIMEOUT_SECONDS = 15.0
 DEFAULT_VISION_MODEL = "gpt-4o-mini"
 
+DEFAULT_EXPLANATION_TIMEOUT_SECONDS = 8.0
+DEFAULT_EXPLANATION_MODEL = "gpt-4o-mini"
+
 DEFAULT_MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1"
 DEFAULT_MEALDB_API_KEY = "1"
 DEFAULT_RECIPE_TIMEOUT_SECONDS = 8.0
@@ -21,6 +24,15 @@ DEFAULT_NEAR_MATCH_MARGIN = 1
 
 @dataclass(frozen=True)
 class VisionSettings:
+    api_key: Optional[str]
+    model: str
+    timeout_seconds: float
+
+
+@dataclass(frozen=True)
+class ExplanationSettings:
+    """Model that rewords the "why this fits you" line. Same OpenAI key as vision."""
+
     api_key: Optional[str]
     model: str
     timeout_seconds: float
@@ -51,6 +63,16 @@ def load_vision_settings() -> VisionSettings:
         model=os.getenv("OPENAI_VISION_MODEL") or DEFAULT_VISION_MODEL,
         timeout_seconds=_positive_float(
             os.getenv("VISION_TIMEOUT_SECONDS"), DEFAULT_VISION_TIMEOUT_SECONDS
+        ),
+    )
+
+
+def load_explanation_settings() -> ExplanationSettings:
+    return ExplanationSettings(
+        api_key=os.getenv("OPENAI_API_KEY") or None,
+        model=os.getenv("EXPLANATION_MODEL") or DEFAULT_EXPLANATION_MODEL,
+        timeout_seconds=_positive_float(
+            os.getenv("EXPLANATION_TIMEOUT_SECONDS"), DEFAULT_EXPLANATION_TIMEOUT_SECONDS
         ),
     )
 

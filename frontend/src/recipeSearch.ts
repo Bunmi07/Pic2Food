@@ -12,6 +12,7 @@ import type { UserConstraints } from './constraints'
 
 export const RECIPE_SEARCH_TIMEOUT_MS = 30_000
 export const MAX_RECIPES = 3
+export const MAX_EXPLANATION_LENGTH = 500
 
 /**
  * assumedAs: how we read a vague staple, e.g. "Pepper" read as black pepper.
@@ -34,6 +35,8 @@ export type Recipe = {
   missing: RecipeItem[]
   staples: RecipeItem[]
   uncheckedAllergy: string[]
+  /** Code-written "why this fits you" line; may later be replaced by a checked AI wording. */
+  explanation: string
 }
 
 export type RecipeSearchStatus = 'supported' | 'near_match' | 'no_match'
@@ -93,7 +96,9 @@ function parseRecipe(raw: unknown): Recipe | null {
     !new URL(mealdbUrl).hostname.endsWith('themealdb.com') ||
     !(imageUrl === null || (isHttpUrl(imageUrl) && new URL(imageUrl).hostname.endsWith('themealdb.com'))) ||
     typeof raw.instructions !== 'string' ||
-    !isStringArray(raw.unchecked_allergy)
+    !isStringArray(raw.unchecked_allergy) ||
+    !isNonEmpty(raw.explanation) ||
+    raw.explanation.length > MAX_EXPLANATION_LENGTH
   ) {
     return null
   }
@@ -115,6 +120,7 @@ function parseRecipe(raw: unknown): Recipe | null {
     missing,
     staples,
     uncheckedAllergy: raw.unchecked_allergy,
+    explanation: raw.explanation,
   }
 }
 
@@ -200,7 +206,7 @@ function isHttpUrl(value: unknown): value is string {
   }
 }
 
-function isNonEmpty(value: unknown): value is string {
+export function isNonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
@@ -208,6 +214,6 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

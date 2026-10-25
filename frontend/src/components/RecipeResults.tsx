@@ -6,7 +6,8 @@
  * - near_match: up to three recipes that each need a few more things
  * - no_match: a plain "nothing close enough" with next steps
  *
- * Each recipe shows its source and link, what you have, what you'd need,
+ * Each recipe shows its source and link, a short "why this fits you" line
+ * (code-written, swapped for a checked AI wording when one arrives), what you have, what you'd need,
  * the pantry staples it assumes, and any ingredients we couldn't check
  * against your allergies. Recipe text is shown exactly as the source gave it.
  * App remounts this card whenever the ingredients or constraints change, so
@@ -23,6 +24,7 @@ import {
   type Recipe,
   type RecipeSearchResult,
 } from '../recipeSearch'
+import { requestExplanations, type Explanation } from '../recipeExplanations'
 
 type RecipeResultsProps = {
   ingredients: ReadyIngredient[]
@@ -35,14 +37,19 @@ export function RecipeResults({ ingredients, constraints }: RecipeResultsProps) 
   const cardRef = useRef<HTMLElement>(null)
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<SearchState>({ status: 'loading' })
+  const [explanations, setExplanations] = useState<Map<string, Explanation> | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    requestRecipeSearch(
-      ingredients.map((item) => item.name),
-      constraints,
-    ).then((result) => {
-      if (!cancelled) setState(result)
+    const names = ingredients.map((item) => item.name)
+    requestRecipeSearch(names, constraints).then((result) => {
+      if (cancelled) return
+      setState(result)
+      if (!result.ok || result.recipes.length === 0) return
+      const ids = result.recipes.map((recipe) => recipe.id)
+      requestExplanations(names, constraints, ids).then((lines) => {
+        if (!cancelled) setExplanations(lines)
+      })
     })
     return () => {
       cancelled = true
@@ -55,6 +62,7 @@ export function RecipeResults({ ingredients, constraints }: RecipeResultsProps) 
 
   function retry() {
     setState({ status: 'loading' })
+    setExplanations(null)
     setAttempt((value) => value + 1)
   }
 
@@ -112,7 +120,12 @@ export function RecipeResults({ ingredients, constraints }: RecipeResultsProps) 
           ) : null}
 
           {state.recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} near={state.status === 'near_match'} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              near={state.status === 'near_match'}
+              explanation={explanations?.get(recipe.id)}
+            />
           ))}
 
           <p className="hint">
@@ -133,9 +146,12 @@ function heading(state: SearchState): string {
   return 'No good match yet'
 }
 
-function RecipeCard({ recipe, near }: { recipe: Recipe; near: boolean }) {
+type RecipeCardProps = { recipe: Recipe; near: boolean; explanation?: Explanation }
+
+function RecipeCard({ recipe, near, explanation }: RecipeCardProps) {
   const meta = [recipe.area, recipe.category].filter(Boolean).join(' · ')
   const viaMealDb = recipe.source.url !== recipe.mealdbUrl
+  const why = explanation ?? { text: recipe.explanation, byAi: false }
 
   return (
     <article className="recipe-card">
@@ -165,6 +181,14 @@ function RecipeCard({ recipe, near }: { recipe: Recipe; near: boolean }) {
             Needs {recipe.missing.length} more ingredient{recipe.missing.length === 1 ? '' : 's'}
           </p>
         ) : null}
+
+        <div className="recipe-why">
+          <h4>Why this fits you</h4>
+          <p>{why.text}</p>
+          {why.byAi ? (
+            <p className="hint">Worded by AI from this recipe and your ingredients.</p>
+          ) : null}
+        </div>
 
         <h4>You have</h4>
         <ul>

@@ -400,6 +400,25 @@
   font-size: 0.92rem;
 }
 
+.recipe-why {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--field);
+}
+
+.recipe-why h4 {
+  margin-top: 0;
+}
+
+.card .recipe-why p {
+  margin: 0;
+}
+
+.card .recipe-why .hint {
+  margin-top: 0.35rem;
+}
+
 .swap-note {
   display: block;
   font-size: 0.88rem;

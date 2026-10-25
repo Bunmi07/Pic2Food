@@ -263,6 +263,7 @@ Done (merged or on review branches):
 - Allergies and foods to avoid, entered before any recipe is suggested and applied as hard constraints to every result, including near matches (`backend/constraints.py`)
 - Recipe retrieval from TheMealDB (`backend/mealdb_client.py`, `backend/recipe_search.py`), with source name and link on every recipe and malformed records skipped
 - Deterministic feasibility and ranking (`backend/feasibility.py`): supported match, near match, or abstention, with matched, missing, and assumed-staple ingredients shown (`frontend/src/components/RecipeResults.tsx`)
+- Grounded explanation (`backend/explanations.py`, `POST /api/recipe-explanations`): every recipe card has a "Why this fits you" line built by code from the recipe and the user's ingredients. For the top three, an OpenAI model may reword that line. It sees only the recipe title, ingredients the user has, ingredients they'd need, and sugar swaps. Code adds "Recipes listing X were left out." Each model line is checked by code (length, no numbers or links, no words like "safe" or "healthy", no food that isn't in the recipe facts) and falls back to the code-built line if it fails, times out, or there's no API key. Model-worded lines are labelled "Worded by AI from this recipe and your ingredients." Settings: `EXPLANATION_MODEL`, `EXPLANATION_TIMEOUT_SECONDS`.
 
 This is a local prototype: it runs on the developer's machine only and is not hosted.
 
@@ -285,7 +286,11 @@ Signed off Oct 2026: the alias, allergen, and food-family additions from the The
 
 Decided Oct 2026: coconut is not a tree nut (recognized, never blocked by the tree-nut allergy). Sugar types are swappable: if the user has any sugar and the recipe asks for a different type (caster, icing, brown, ...), it counts as something they have, with a visible note naming both so the user judges. With no sugar at all it is still missing. Exact matches rank above swaps. The swap groups live in `SWAP_GROUPS` in `backend/feasibility.py`.
 
-Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
+Decided Oct 2026 (grounded explanation): the model only rewords facts code already worked out. Allergies and foods to avoid are never sent to the model. The code-built line is always the fallback, and model-worded lines carry an AI label.
+
+Open: the model-worded lines have not yet been checked live (no API key was set during the build); check the share of lines that fall back once a key is in `.env`.
+
+Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region), a user-adjustable threshold, and remembering allergies on the user's device.
 
 Do not connect a recipe API, ranking, or generated explanation ahead of the allergy and exclusion step.
 

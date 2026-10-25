@@ -10,6 +10,9 @@ Steps, in this order:
    any that hits an allergy or food to avoid (hard filter) before scoring.
    A blocked recipe can never become a near match.
 4. Score and classify: supported match, near match, or no match.
+5. Attach each recipe's code-written "why this fits you" line
+   (explanations.py). The optional AI-worded version is a separate request
+   (score_recipes_by_id rebuilds the facts for it).
 """
 
 import logging
@@ -21,8 +24,16 @@ from dataclasses import dataclass
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
 from backend.config import RecipeSettings
-from backend.constraints import Constraints, check_recipe
-from backend.feasibility import classify, ingredient_keys, score_recipe, scored_to_dict, user_key_set
+from backend.constraints import Constraints, check_recipe, words
+from backend.explanations import constraints_sentence, facts_for, template_line
+from backend.feasibility import (
+    ScoredRecipe,
+    classify,
+    ingredient_keys,
+    score_recipe,
+    scored_to_dict,
+    user_key_set,
+)
 from backend.mealdb_client import MealDbClient, RecipeSourceError
 from backend.recipes import (
     RecipeRecord,
@@ -50,6 +61,7 @@ class RecipeSourceMalformed(RecipeSourceError):
 class RecipeCatalog:
     recipes: Tuple[RecipeRecord, ...]
     ingredient_keys: FrozenSet[str]
+    food_words: FrozenSet[str]  # every word in any ingredient name; used to check explanations
     malformed: int
     loaded_at: float
 
@@ -97,8 +109,11 @@ def load_catalog(client: MealDbClient) -> RecipeCatalog:
     keys = frozenset(
         key for recipe in recipes for name in ingredient_names(recipe) for key in ingredient_keys(name)
     )
+    food_words = frozenset(
+        word for recipe in recipes for name in ingredient_names(recipe) for word in words(name)
+    )
     logger.info("recipe_catalog loaded recipes=%d malformed=%d", len(recipes), malformed)
-    return RecipeCatalog(tuple(recipes), keys, malformed, time.monotonic())
+    return RecipeCatalog(tuple(recipes), keys, food_words, malformed, time.monotonic())
 
 
 def get_catalog(client: MealDbClient) -> RecipeCatalog:
@@ -145,8 +160,43 @@ def search_recipes(
         "recipe_search outcome=%s catalog=%d candidates=%d blocked=%d shown=%d",
         status, len(catalog.recipes), len(candidates), blocked, len(chosen),
     )
-    return {
-        "status": status,
-        "recipes": [dict(recipe_to_dict(s.recipe), **scored_to_dict(s)) for s in chosen],
-        "not_found": not_found,
-    }
+    tail = constraints_sentence(constraints)
+    recipes = []
+    for s in chosen:
+        entry = dict(recipe_to_dict(s.recipe), **scored_to_dict(s))
+        entry["explanation"] = " ".join(filter(None, [template_line(facts_for(s)), tail]))
+        recipes.append(entry)
+    return {"status": status, "recipes": recipes, "not_found": not_found}
+
+
+class UnknownRecipeIds(ValueError):
+    """An ID isn't in the catalog, is blocked by the constraints, or uses none of the ingredients."""
+
+
+def score_recipes_by_id(
+    recipe_ids: List[str],
+    ingredients: List[str],
+    constraints: Constraints,
+    client: MealDbClient,
+) -> Tuple[List[ScoredRecipe], RecipeCatalog]:
+    """Rebuild the scored recipes for an explanation request, from our own data only.
+
+    The browser sends only IDs; the facts are recomputed here so nothing the
+    browser sends can reach the model as a "fact".
+    """
+    catalog = get_catalog(client)
+    by_id = {recipe.id: recipe for recipe in catalog.recipes}
+    user_keys = user_key_set(ingredients)
+    scored = []
+    for recipe_id in recipe_ids:
+        recipe = by_id.get(recipe_id)
+        if recipe is None:
+            raise UnknownRecipeIds(recipe_id)
+        check = check_recipe(ingredient_names(recipe), constraints)
+        if not check.allowed:
+            raise UnknownRecipeIds(recipe_id)
+        result = score_recipe(recipe, user_keys, check.unchecked)
+        if not result.matched:
+            raise UnknownRecipeIds(recipe_id)
+        scored.append(result)
+    return scored, catalog
