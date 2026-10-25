@@ -294,6 +294,45 @@
   font-size: 1rem;
 }
 
+.allergen-grid {
+  border: 0;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.55rem 0.75rem;
+}
+
+.allergen-grid legend {
+  font-size: 0.92rem;
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+.card .chip-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.card .chip {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.2rem 0.3rem 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: #3a3029;
+  color: var(--ink);
+}
+
+.constraints-action {
+  margin-top: 1rem;
+}
+
 .inventory ul {
   margin: 0.5rem 0 0;
   padding-left: 1.15rem;
