@@ -4,12 +4,13 @@
  *
  * Owns the flow between those steps. When a photo is ready it asks for
  * ingredient guesses, logs which ones were shown, and hands them to
- * IngredientConfirmation. The confirmed inventory lives here so later steps
- * (recipe search) can use it.
+ * IngredientConfirmation. Once the user confirms, NormalizedInventory turns
+ * the confirmed names into standard names for recipe search.
  */
 import { useRef, useState } from 'react'
 import './App.css'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
+import { NormalizedInventory } from './components/NormalizedInventory'
 import { PhotoCapture, type SelectedPhoto } from './components/PhotoCapture'
 import {
   rowsFromCandidates,
@@ -154,6 +155,13 @@ function App() {
           onRowsChange={setRows}
           inventory={inventory}
           onInventoryChange={setInventory}
+        />
+      ) : null}
+
+      {candidateStatus === 'ready' && inventory ? (
+        <NormalizedInventory
+          key={inventory.ingredients.map((item) => item.name).join('|')}
+          inventory={inventory}
         />
       ) : null}
     </main>

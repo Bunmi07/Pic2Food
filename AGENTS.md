@@ -242,7 +242,7 @@ Document only commands that have been verified to work:
 - Backend (Python) Environment setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, then copy `.env.example` to `.env` and add `OPENAI_API_KEY`
 - Frontend (React + TypeScript) environment setup: `cd frontend && npm install`
 - Local application(backend): `.venv/bin/uvicorn server:app --port 8000` (the frontend dev server proxies `/api` to it)
-- Frontend without the vision model (saved sample candidates): `cd frontend && VITE_CANDIDATE_SOURCE=fixture npm run dev`
+- Frontend without the vision model (saved sample candidates): `cd frontend && VITE_CANDIDATE_SOURCE=fixture npm run dev` (the backend must still be running for the ingredient-name step after confirming; no API key needed)
 - Unit tests (backend, standard-library unittest, model calls mocked): `.venv/bin/python -m unittest discover -s backend/tests -t .`
 - Local application(frontend): `cd frontend && npm run dev`
 - Unit tests (frontend, Node built-in test runner, Node 24+): `cd frontend && npm test`

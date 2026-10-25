@@ -7,7 +7,7 @@
  * and items the model couldn't narrow down point the user to manual entry.
  * Each action is logged as its own evaluation event.
  */
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import {
   canConfirmRow,
   confirmationEvents,
@@ -36,7 +36,6 @@ export function IngredientConfirmation({
   onInventoryChange,
 }: IngredientConfirmationProps) {
   const addId = useId()
-  const resultRef = useRef<HTMLDivElement>(null)
   const [addValue, setAddValue] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
@@ -95,9 +94,6 @@ export function IngredientConfirmation({
     }
     setConfirmError(null)
     onInventoryChange(result.inventory)
-    window.setTimeout(() => {
-      resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }, 0)
   }
 
   return (
@@ -235,21 +231,11 @@ export function IngredientConfirmation({
       ) : null}
 
       {inventory ? (
-        <div ref={resultRef} className="inventory" aria-live="polite">
-          <h3>Confirmed inventory</h3>
-          <p className="hint">
-            Only these items can be used for recipes later. Recipe search is not
-            wired yet.
-          </p>
-          <ul>
-            {inventory.ingredients.map((item) => (
-              <li key={item.candidateId}>
-                {item.name}
-                <span className="candidate-tag"> {item.source}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <p className="hint">
+          Confirmed {inventory.ingredients.length} ingredient
+          {inventory.ingredients.length === 1 ? '' : 's'}. Changing the list
+          above will ask you to confirm again.
+        </p>
       ) : null}
     </section>
   )
