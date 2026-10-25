@@ -8,7 +8,9 @@ blocking: a wrong block hides a recipe, a wrong pass could harm someone.
 
 Allergen words live in backend/data/allergen_groups.json. Typed foods to
 avoid are matched by name, plus the alias file's other names for them
-("scallion" also blocks "green onion").
+("scallion" also blocks "green onion"). If the typed word names a food
+family in backend/data/food_families.json ("pork", "dairy", "meat"...), the
+whole family is blocked too ("pork" blocks "bacon").
 
 A recipe ingredient we have never reviewed (not in the alias file and not an
 allergen word) is reported as unchecked when the user has allergies, so the
@@ -23,9 +25,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
 
-from backend.normalization import default_aliases, normalize_term, singular_forms
+from backend.normalization import clean_term, default_aliases, normalize_term, singular_forms
 
 ALLERGENS_PATH = Path(__file__).parent / "data" / "allergen_groups.json"
+FAMILIES_PATH = Path(__file__).parent / "data" / "food_families.json"
 ALLERGEN_IDS = (
     "milk", "egg", "fish", "shellfish", "tree_nuts", "peanuts", "wheat", "soy", "sesame",
 )
@@ -45,6 +48,7 @@ class AllergenGroup:
 class AvoidTerm:
     original: str
     phrases: Tuple[Phrase, ...]
+    groups: Tuple[AllergenGroup, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -128,6 +132,74 @@ def default_allergen_groups() -> Dict[str, AllergenGroup]:
     return load_allergen_groups()
 
 
+def load_food_families(
+    path: Path = FAMILIES_PATH, allergens: Optional[Dict[str, AllergenGroup]] = None
+) -> Dict[str, Tuple[AllergenGroup, ...]]:
+    """Read and check the food-family file.
+
+    Returns typed name -> every word group that name blocks, with "includes"
+    already expanded ("meat" pulls in pork, beef, lamb, and poultry). A broken
+    file, an unknown reference, or a loop fails loudly at startup.
+    """
+    allergen_groups = default_allergen_groups() if allergens is None else allergens
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("food family file must be a JSON object")
+
+    own_groups = {}
+    for key, entry in data.items():
+        if not isinstance(entry, dict) or not all(
+            isinstance(entry.get(field_name), list)
+            for field_name in ("names", "terms", "except", "includes")
+        ):
+            raise ValueError("food family {!r} needs names, terms, except, includes".format(key))
+        if not entry["names"] or not (entry["terms"] or entry["includes"]):
+            raise ValueError("food family {!r} needs names and terms or includes".format(key))
+        terms = tuple(words(term) for term in entry["terms"])
+        exceptions = tuple(words(term) for term in entry["except"])
+        if not all(terms) or not all(exceptions):
+            raise ValueError("food family {!r} has an empty term".format(key))
+        own_groups[key] = AllergenGroup("family:" + key, key, terms, exceptions)
+
+    def expand(key: str, visiting: Tuple[str, ...]) -> List[AllergenGroup]:
+        if key in visiting:
+            raise ValueError("food family loop: {}".format(" -> ".join(visiting + (key,))))
+        groups = [own_groups[key]] if own_groups[key].terms else []
+        for ref in data[key]["includes"]:
+            kind, _, name = ref.partition(":")
+            if kind == "allergen" and name in allergen_groups:
+                groups.append(allergen_groups[name])
+            elif kind == "family" and name in data:
+                groups.extend(expand(name, visiting + (key,)))
+            else:
+                raise ValueError("food family {!r} has a bad include {!r}".format(key, ref))
+        return groups
+
+    families = {}
+    for key, entry in data.items():
+        groups = tuple(dict.fromkeys(expand(key, ())))
+        for name in entry["names"]:
+            if name != clean_term(name) or name in families:
+                raise ValueError("food family name {!r} is not normalized or repeats".format(name))
+            families[name] = groups
+    return families
+
+
+@lru_cache(maxsize=1)
+def default_food_families() -> Dict[str, Tuple[AllergenGroup, ...]]:
+    return load_food_families()
+
+
+def family_groups(raw: str) -> Tuple[AllergenGroup, ...]:
+    """The food family a typed word names, if any ("Nuts" -> tree nuts + peanuts)."""
+    term = clean_term(raw)
+    families = default_food_families()
+    for key in [term] + singular_forms(term):
+        if key in families:
+            return families[key]
+    return ()
+
+
 def avoid_phrases(raw: str) -> Tuple[Phrase, ...]:
     """The typed word plus every name the alias file links to it."""
     names = {raw}
@@ -153,7 +225,7 @@ def build_constraints(
         if all_groups[allergen_id] not in selected:
             selected.append(all_groups[allergen_id])
     avoid_terms = tuple(
-        AvoidTerm(original=term.strip(), phrases=avoid_phrases(term))
+        AvoidTerm(original=term.strip(), phrases=avoid_phrases(term), groups=family_groups(term))
         for term in avoid
         if term.strip()
     )
@@ -172,9 +244,12 @@ def is_reviewed(name: str, ingredient: Phrase) -> bool:
         return True
     if normalize_term(name).status != "unknown":
         return True
+    known_groups = list(default_allergen_groups().values()) + [
+        group for groups in default_food_families().values() for group in groups
+    ]
     return any(
         contains_phrase(ingredient, phrase)
-        for group in default_allergen_groups().values()
+        for group in known_groups
         for phrase in group.terms + group.exceptions
     )
 
@@ -187,7 +262,9 @@ def check_ingredient(name: str, constraints: Constraints) -> IngredientCheck:
         if matches_group(ingredient, group):
             check.reasons.append({"type": "allergy", "id": group.id, "label": group.label})
     for term in constraints.avoid:
-        if any(contains_phrase(ingredient, phrase) for phrase in term.phrases):
+        if any(contains_phrase(ingredient, phrase) for phrase in term.phrases) or any(
+            matches_group(ingredient, group) for group in term.groups
+        ):
             check.reasons.append({"type": "avoid", "term": term.original})
     if constraints.allergens and not check.blocked and not is_reviewed(name, ingredient):
         check.unchecked = True

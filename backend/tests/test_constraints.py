@@ -1,7 +1,11 @@
 """Tests for the allergy and foods-to-avoid filter: whole-word matching,
-exceptions, unchecked ingredients, recipe blocking, and the endpoint."""
+exceptions, food families, unchecked ingredients, recipe blocking, and the
+endpoint."""
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -12,6 +16,7 @@ from backend.constraints import (
     check_ingredient,
     check_recipe,
     load_allergen_groups,
+    load_food_families,
 )
 from backend.normalization import default_aliases
 
@@ -91,8 +96,80 @@ class AvoidTests(unittest.TestCase):
         self.assertTrue(blocked("Red Pepper Flakes", avoid=["pepper"]))
         self.assertFalse(blocked("Porky Pie", avoid=["pork"]))
 
-    def test_avoid_is_by_name_only(self):
-        self.assertFalse(blocked("Bacon", avoid=["pork"]))
+    def test_unknown_typed_words_match_by_name_only(self):
+        self.assertTrue(blocked("Celery Sticks", avoid=["celery"]))
+        self.assertFalse(blocked("Celeriac", avoid=["celery"]))
+
+
+class FoodFamilyTests(unittest.TestCase):
+    def test_family_file_is_valid(self):
+        families = load_food_families()
+        self.assertIn("pork", families)
+        self.assertIn("nut", families)
+
+    def test_pork_covers_hidden_pork(self):
+        for name in ["Bacon", "Smoked Ham", "Chorizo", "Pancetta", "Lard", "Gelatine"]:
+            self.assertTrue(blocked(name, avoid=["pork"]), name)
+        self.assertFalse(blocked("Hamburger Buns", avoid=["pork"]))
+
+    def test_families_reuse_allergen_lists(self):
+        self.assertTrue(blocked("Parmesan", avoid=["dairy"]))
+        self.assertFalse(blocked("Coconut Milk", avoid=["dairy"]))
+        self.assertTrue(blocked("Pine Nuts", avoid=["nuts"]))
+        self.assertTrue(blocked("Peanut Butter", avoid=["Nuts"]))
+        self.assertTrue(blocked("Plain Flour", avoid=["gluten"]))
+        self.assertTrue(blocked("Pearl Barley", avoid=["gluten"]))
+        self.assertTrue(blocked("Fish Sauce", avoid=["seafood"]))
+
+    def test_meat_includes_other_families(self):
+        for name in ["Bacon", "Beef Stock", "Lamb Shank", "Chicken Thighs", "Venison"]:
+            self.assertTrue(blocked(name, avoid=["meat"]), name)
+        self.assertFalse(blocked("Kidney Beans", avoid=["meat"]))
+        self.assertFalse(blocked("Goat's Cheese", avoid=["meat"]))
+
+    def test_alcohol_exceptions(self):
+        self.assertTrue(blocked("Red Wine", avoid=["alcohol"]))
+        self.assertTrue(blocked("Mirin", avoid=["alcohol"]))
+        self.assertFalse(blocked("Red Wine Vinegar", avoid=["alcohol"]))
+        self.assertFalse(blocked("Ginger", avoid=["alcohol"]))
+
+    def test_specific_word_does_not_expand_to_family(self):
+        self.assertTrue(blocked("Bacon", avoid=["bacon"]))
+        self.assertFalse(blocked("Ham", avoid=["bacon"]))
+
+    def test_family_hits_report_what_the_user_typed(self):
+        check = check_ingredient("Bacon", build_constraints([], ["Pork"]))
+        self.assertEqual(check.reasons, [{"type": "avoid", "term": "Pork"}])
+
+    def test_family_words_count_as_reviewed(self):
+        constraints = build_constraints(["milk"], [])
+        self.assertFalse(check_ingredient("Pancetta", constraints).unchecked)
+
+    def write_families(self, data):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump(data, handle)
+        handle.close()
+        self.addCleanup(Path(handle.name).unlink)
+        return Path(handle.name)
+
+    def family(self, **overrides):
+        entry = {"names": ["x"], "terms": ["x"], "except": [], "includes": []}
+        entry.update(overrides)
+        return entry
+
+    def test_rejects_bad_includes_and_loops(self):
+        bad_files = [
+            {"a": self.family(includes=["allergen:gluten"])},
+            {"a": self.family(includes=["family:missing"])},
+            {
+                "a": self.family(names=["a"], includes=["family:b"]),
+                "b": self.family(names=["b"], includes=["family:a"]),
+            },
+            {"a": self.family(names=["a"]), "b": self.family(names=["a"])},
+        ]
+        for data in bad_files:
+            with self.assertRaises(ValueError):
+                load_food_families(self.write_families(data))
 
     def test_reason_reports_what_the_user_typed(self):
         check = check_ingredient("Spring Onions", build_constraints([], [" Scallions "]))

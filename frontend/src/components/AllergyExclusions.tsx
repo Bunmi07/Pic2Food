@@ -136,8 +136,9 @@ export function AllergyExclusions({
           </button>
         </div>
         <p className="hint">
-          Matched by name, so “pork” won’t catch “bacon”. Add each one you want
-          left out.
+          Groups like “pork”, “meat”, “dairy”, “nuts”, “gluten”, and “alcohol”
+          also cover related foods (“pork” covers bacon and ham). Anything else
+          is matched by name, so add each food you want left out.
         </p>
       </form>
 
