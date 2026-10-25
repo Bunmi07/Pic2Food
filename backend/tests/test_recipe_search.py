@@ -32,23 +32,17 @@ from backend.feasibility import (
     user_key_set,
 )
 from backend.mealdb_client import MealDbClient, RecipeSourceError, RecipeSourceTimeout
-from backend.recipe_search import clear_ingredient_index_cache
+from backend.recipe_search import clear_recipe_catalog_cache
 from backend.recipes import RecipeRecordError, parse_recipe
 
 SETTINGS = RecipeSettings(
     base_url="https://mealdb.test/api/json/v1",
     api_key="1",
     timeout_seconds=1.0,
-    max_lookups=25,
+    catalog_hours=24.0,
     max_missing=2,
     near_match_margin=1,
 )
-
-SOURCE_INGREDIENTS = [
-    "Eggs", "Free-range Eggs, Beaten", "Bread", "Milk", "Butter", "Salt", "Black Pepper",
-    "Extra Virgin Olive Oil", "Spring Onions", "Sugar", "Peanuts", "Soy Sauce", "Garlic",
-    "Ham", "Mystery Relish", "Parsley", "Basil", "Lemon", "Chives", "Cream", "Nutmeg",
-]
 
 
 def meal(meal_id, title, ingredients, source=None, **extra):
@@ -101,11 +95,12 @@ RECIPES = {
         source="javascript:alert(1)",
     ),
     "1006": meal("1006", "", [("Eggs", "2")]),
+    "1008": meal("1008", "Æbleskiver", [("Eggs", "2"), ("Flour", "200g"), ("Milk", "250ml")]),
 }
 
 
 class FakeMealDb:
-    """Serves list/filter/lookup from the records above; can be told to fail."""
+    """Serves categories, letter search, and lookup from the records above; can be told to fail."""
 
     def __init__(self, recipes=None, failure=None):
         self.recipes = RECIPES if recipes is None else recipes
@@ -121,17 +116,24 @@ class FakeMealDb:
         if self.failure == "not_json":
             return httpx.Response(200, text="<html>")
         path = request.url.path.rsplit("/", 1)[-1]
-        param = request.url.params.get("i")
-        if path == "list.php":
-            meals = [{"strIngredient": name} for name in SOURCE_INGREDIENTS]
-        elif path == "filter.php":
+        params = request.url.params
+        if path == "list.php" and params.get("c") == "list":
+            categories = sorted({record["strCategory"] for record in self.recipes.values()})
+            meals = [{"strCategory": name} for name in categories]
+        elif path == "filter.php" and "c" in params:
             meals = [
                 {"idMeal": meal_id, "strMeal": record.get("strMeal")}
                 for meal_id, record in self.recipes.items()
-                if any(record.get("strIngredient{}".format(n)) == param for n in range(1, 21))
+                if record["strCategory"] == params["c"]
+            ] or None
+        elif path == "search.php" and "f" in params:
+            meals = [
+                record
+                for record in self.recipes.values()
+                if record["strMeal"].lower().startswith(params["f"])
             ] or None
         elif path == "lookup.php":
-            meals = [self.recipes[param]] if param in self.recipes else None
+            meals = [self.recipes[params["i"]]] if params["i"] in self.recipes else None
         else:
             return httpx.Response(404)
         return httpx.Response(200, json={"meals": meals})
@@ -188,10 +190,17 @@ class ClientTests(unittest.TestCase):
             ("not_json", RecipeSourceError),
         ]:
             with self.assertRaises(error):
-                FakeMealDb(failure=failure).client().recipe_ids_using("Eggs")
+                FakeMealDb(failure=failure).client().recipes_starting_with("e")
 
     def test_no_results_is_an_empty_list(self):
-        self.assertEqual(FakeMealDb().client().recipe_ids_using("Dragonfruit"), [])
+        self.assertEqual(FakeMealDb().client().recipes_starting_with("q"), [])
+        self.assertIsNone(FakeMealDb().client().lookup_recipe("9999"))
+
+    def test_non_numeric_ids_are_dropped(self):
+        recipes = dict(RECIPES, bad=dict(RECIPES["1001"], idMeal="1;drop"))
+        ids = FakeMealDb(recipes).client().recipe_ids_in_category("Breakfast")
+        self.assertNotIn("1;drop", ids)
+        self.assertIn("1001", ids)
 
     def test_missing_meals_field_is_an_error(self):
         client = MealDbClient(
@@ -289,14 +298,14 @@ class ClassifyTests(unittest.TestCase):
 
 class RecipeSearchEndpointTests(unittest.TestCase):
     def setUp(self):
-        clear_ingredient_index_cache()
+        clear_recipe_catalog_cache()
         self.fake = FakeMealDb()
         self.http = TestClient(app)
         self.use(self.fake)
 
     def tearDown(self):
         app.dependency_overrides.clear()
-        clear_ingredient_index_cache()
+        clear_recipe_catalog_cache()
 
     def use(self, fake):
         app.dependency_overrides[get_recipe_client] = lambda: fake.client()
@@ -310,7 +319,7 @@ class RecipeSearchEndpointTests(unittest.TestCase):
     def test_supported_results_carry_source_and_split_ingredients(self):
         body = self.search(["egg", "bread", "milk", "butter", "green onion"]).json()
         self.assertEqual(body["status"], "supported")
-        self.assertEqual([r["id"] for r in body["recipes"]], ["1002", "1001", "1005"])
+        self.assertEqual([r["id"] for r in body["recipes"]], ["1002", "1001", "1008"])
         toast = body["recipes"][1]
         self.assertEqual(
             toast["source"],
@@ -365,7 +374,7 @@ class RecipeSearchEndpointTests(unittest.TestCase):
             ("500", 502, "recipe_source_failed"),
             ("not_json", 502, "recipe_source_failed"),
         ]:
-            clear_ingredient_index_cache()
+            clear_recipe_catalog_cache()
             self.use(FakeMealDb(failure=failure))
             response = self.search(["egg"])
             self.assertEqual((response.status_code, response.json()), (status, {"error": code}))
@@ -379,14 +388,36 @@ class RecipeSearchEndpointTests(unittest.TestCase):
         body = self.search(["egg", "bread", "milk", "butter", "green onion"]).json()
         self.assertNotIn("1006", [r["id"] for r in body["recipes"]])
 
-    def test_lookups_are_capped(self):
-        self.use(FakeMealDb())
+    def test_catalog_is_loaded_once_and_reused(self):
+        self.search(["egg"])
+        first_load = len(self.fake.requests)
+        self.search(["bread"])
+        self.assertEqual(len(self.fake.requests), first_load)
+
+    def test_catalog_reloads_when_old(self):
         app.dependency_overrides[get_recipe_client] = lambda: self.fake.client(
-            replace(SETTINGS, max_lookups=2)
+            replace(SETTINGS, catalog_hours=1e-9)
         )
-        self.search(["egg", "bread"])
-        lookups = [r for r in self.fake.requests if r.url.path.endswith("lookup.php")]
-        self.assertEqual(len(lookups), 2)
+        self.search(["egg"])
+        first_load = len(self.fake.requests)
+        self.search(["egg"])
+        self.assertEqual(len(self.fake.requests), 2 * first_load)
+
+    def test_titles_not_starting_with_a_letter_are_still_searched(self):
+        body = self.search(["egg", "milk", "flour"]).json()
+        self.assertIn("1008", [r["id"] for r in body["recipes"]])
+        lookups = [r.url.params["i"] for r in self.fake.requests if r.url.path.endswith("lookup.php")]
+        self.assertEqual(sorted(lookups), ["1006", "1008"])
+
+    def test_every_recipe_is_checked_not_just_a_sample(self):
+        recipes = {
+            str(3000 + n): meal(str(3000 + n), "Bread {}".format(n), [("Bread", "1"), ("Ham", "1")])
+            for n in range(60)
+        }
+        recipes["3999"] = meal("3999", "Toast", [("Bread", "1"), ("Butter", "1")])
+        self.use(FakeMealDb(recipes))
+        body = self.search(["bread", "butter"], avoid=["pork"]).json()
+        self.assertEqual([r["id"] for r in body["recipes"]], ["3999"])
 
     def test_allergy_choices_are_not_logged(self):
         with self.assertLogs("pic2food", level="INFO") as logs:

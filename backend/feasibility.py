@@ -19,6 +19,7 @@ scoring; scoring never sees a blocked recipe.
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Dict, FrozenSet, Iterable, List, Tuple
 
 from backend.config import RecipeSettings
@@ -59,6 +60,7 @@ def _phrase_keys(phrase: str) -> List[str]:
     return [phrase] + [" ".join(parts[:-1] + [form]) for form in singular_forms(parts[-1])]
 
 
+@lru_cache(maxsize=8192)
 def ingredient_keys(name: str) -> FrozenSet[str]:
     """Comparable forms of one ingredient name, used for both user and recipe sides."""
     all_words = words(name)

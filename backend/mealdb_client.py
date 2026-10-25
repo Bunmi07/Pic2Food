@@ -1,9 +1,11 @@
 """Talks to TheMealDB, the approved recipe source for the MVP.
 
-Three calls, all read-only: the full ingredient list (to learn TheMealDB's
-names for things), recipes that use one ingredient, and one full recipe by
-ID. Every answer is checked for the expected shape before it is returned;
-the recipe content itself is validated in recipes.py.
+Four read-only calls, used together to load the whole recipe catalog:
+the category names, the recipe IDs in one category (the complete ID list),
+full recipes whose title starts with one letter or digit (most of the
+catalog in a few calls), and one full recipe by ID (for the few titles that
+start with anything else). Every answer is checked for the expected shape
+before it is returned; the recipe content itself is validated in recipes.py.
 
 Failures raise RecipeSourceTimeout or RecipeSourceError and are never retried
 silently.
@@ -57,25 +59,28 @@ class MealDbClient:
             raise RecipeSourceError("meals is not a list of objects")
         return meals
 
-    def list_ingredient_names(self) -> List[str]:
-        """Every ingredient name TheMealDB uses, e.g. "Spring Onions"."""
+    def list_categories(self) -> List[str]:
+        """Every recipe category, e.g. "Breakfast"."""
         names = []
-        for entry in self._get_meals("list.php", {"i": "list"}):
-            name = entry.get("strIngredient")
+        for entry in self._get_meals("list.php", {"c": "list"}):
+            name = entry.get("strCategory")
             if isinstance(name, str) and name.strip():
                 names.append(name.strip())
         if not names:
-            raise RecipeSourceError("empty ingredient list")
+            raise RecipeSourceError("empty category list")
         return names
 
-    def recipe_ids_using(self, ingredient_name: str) -> List[str]:
-        """IDs of recipes that list this exact TheMealDB ingredient."""
+    def recipe_ids_in_category(self, category: str) -> List[str]:
         ids = []
-        for entry in self._get_meals("filter.php", {"i": ingredient_name}):
+        for entry in self._get_meals("filter.php", {"c": category}):
             meal_id = entry.get("idMeal")
             if isinstance(meal_id, str) and meal_id.isdigit():
                 ids.append(meal_id)
         return ids
+
+    def recipes_starting_with(self, character: str) -> List[Dict[str, Any]]:
+        """Full raw records for every recipe whose title starts with this letter or digit."""
+        return self._get_meals("search.php", {"f": character})
 
     def lookup_recipe(self, meal_id: str) -> Optional[Dict[str, Any]]:
         """The full raw record for one recipe, or None if TheMealDB has no such ID."""

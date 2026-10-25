@@ -98,6 +98,7 @@ def assumed_meaning(name: str) -> Optional[str]:
     return ASSUMED_RECIPE_MEANINGS.get(words(name))
 
 
+@lru_cache(maxsize=16384)
 def _word_keys(word: str) -> FrozenSet[str]:
     return frozenset([word] + singular_forms(word))
 
@@ -251,6 +252,7 @@ def matches_group(ingredient: Phrase, group: AllergenGroup) -> bool:
     return any(contains_phrase(ingredient, phrase) for phrase in group.terms)
 
 
+@lru_cache(maxsize=8192)
 def is_reviewed(name: str, ingredient: Phrase) -> bool:
     """We know what this ingredient is: it's in the alias file or the allergen file."""
     if normalize_term(" ".join(ingredient)).status != "unknown":

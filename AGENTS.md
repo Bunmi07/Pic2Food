@@ -276,9 +276,10 @@ Decided for these slices:
 - If a confirmed ingredient clashes with an allergy or a food to avoid, recipe search is blocked until the user removes the ingredient or changes the allergy. Nothing is removed automatically.
 - If a recipe ingredient can't be checked against the user's allergies (it isn't in the alias or allergen file), the recipe may be shown, but only with a visible warning naming those ingredients. A blocked ingredient always removes the recipe.
 - Allergy choices stay in the browser session and are never logged.
-- Retrieval settings (TheMealDB address and key, timeout, how many recipes to look up per search, and the match thresholds) are environment variables listed in `.env.example`.
+- Every search checks TheMealDB's whole catalog (about 800 recipes), loaded into server memory on the first search and reloaded after `RECIPE_CATALOG_HOURS` (default 24). Nothing is written to disk.
+- Retrieval settings (TheMealDB address and key, timeout, catalog reload hours, and the match thresholds) are environment variables listed in `.env.example`.
 
-Open for product review: how many recipes to look up per search (today 25, the best-overlapping ones; a search can match hundreds), and growing the alias file so common recipe ingredients (parsley, red pepper, ...) don't trigger the allergy warning.
+Open for product review: growing the alias and allergen files so common recipe ingredients (parsley, red pepper, baguette, ...) are recognized. Today an unrecognized ingredient only triggers the allergy warning, so gaps in the allergen lists (for example "baguette" missing from wheat) let a recipe through with a warning instead of removing it.
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

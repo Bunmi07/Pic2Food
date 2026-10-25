@@ -14,7 +14,7 @@ DEFAULT_VISION_MODEL = "gpt-4o-mini"
 DEFAULT_MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1"
 DEFAULT_MEALDB_API_KEY = "1"
 DEFAULT_RECIPE_TIMEOUT_SECONDS = 8.0
-DEFAULT_RECIPE_MAX_LOOKUPS = 25
+DEFAULT_RECIPE_CATALOG_HOURS = 24.0
 DEFAULT_MAX_MISSING = 2
 DEFAULT_NEAR_MATCH_MARGIN = 1
 
@@ -33,12 +33,13 @@ class RecipeSettings:
     max_missing: a recipe is a supported match when it misses at most this many
     ingredients (pantry staples don't count). near_match_margin: a near match
     misses more than max_missing but no more than max_missing + margin.
+    catalog_hours: how long the in-memory recipe catalog is kept before reloading.
     """
 
     base_url: str
     api_key: str
     timeout_seconds: float
-    max_lookups: int
+    catalog_hours: float
     max_missing: int
     near_match_margin: int
 
@@ -62,8 +63,9 @@ def load_recipe_settings() -> RecipeSettings:
         timeout_seconds=_positive_float(
             os.getenv("RECIPE_TIMEOUT_SECONDS"), DEFAULT_RECIPE_TIMEOUT_SECONDS
         ),
-        max_lookups=_non_negative_int(os.getenv("RECIPE_MAX_LOOKUPS"), DEFAULT_RECIPE_MAX_LOOKUPS)
-        or DEFAULT_RECIPE_MAX_LOOKUPS,
+        catalog_hours=_positive_float(
+            os.getenv("RECIPE_CATALOG_HOURS"), DEFAULT_RECIPE_CATALOG_HOURS
+        ),
         max_missing=_non_negative_int(os.getenv("RECIPE_MAX_MISSING"), DEFAULT_MAX_MISSING),
         near_match_margin=_non_negative_int(
             os.getenv("RECIPE_NEAR_MATCH_MARGIN"), DEFAULT_NEAR_MATCH_MARGIN
