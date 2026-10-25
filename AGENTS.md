@@ -260,12 +260,11 @@ Done (merged or on review branches):
 - Fixture-backed and live (OpenAI) ingredient candidates, with non-food and unreadable results
 - User confirmation, correction, removal, and manual addition; confirmed inventory
 - Ingredient normalization against `backend/data/ingredient_aliases.json`, with ambiguous terms resolved by the user and unknown terms logged
+- Allergies and foods to avoid, entered before any recipe is suggested and applied as hard constraints to every result, including near matches (`backend/constraints.py`)
+- Recipe retrieval from TheMealDB (`backend/mealdb_client.py`, `backend/recipe_search.py`), with source name and link on every recipe and malformed records skipped
+- Deterministic feasibility and ranking (`backend/feasibility.py`): supported match, near match, or abstention, with matched, missing, and assumed-staple ingredients shown (`frontend/src/components/RecipeResults.tsx`)
 
-Next, in this order:
-
-1. Allergies and exclusions (built; the filter `check_recipe` in `backend/constraints.py` is ready for retrieval to use): the user enters them before any recipe is suggested. They are hard constraints applied to every result, including near matches.
-2. Recipe retrieval from TheMealDB (the approved source for the MVP), with source name and link on every recipe.
-3. Deterministic feasibility and ranking: supported match, near match, or abstention, with matched and missing ingredients shown.
+This is a local prototype: it runs on the developer's machine only and is not hosted.
 
 Decided for these slices:
 
@@ -276,6 +275,9 @@ Decided for these slices:
 - If a confirmed ingredient clashes with an allergy or a food to avoid, recipe search is blocked until the user removes the ingredient or changes the allergy. Nothing is removed automatically.
 - If a recipe ingredient can't be checked against the user's allergies (it isn't in the alias or allergen file), the recipe may be shown, but only with a visible warning naming those ingredients. A blocked ingredient always removes the recipe.
 - Allergy choices stay in the browser session and are never logged.
+- Retrieval settings (TheMealDB address and key, timeout, how many recipes to look up per search, and the match thresholds) are environment variables listed in `.env.example`.
+
+Open for product review: whether water counts as a pantry staple (today it counts as missing), and how many recipes to look up per search (today 25, the best-overlapping ones; a search can match hundreds).
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

@@ -7,14 +7,17 @@
  * IngredientConfirmation. Once the user confirms, NormalizedInventory turns
  * the confirmed names into standard names for recipe search, and then
  * AllergyExclusions collects allergies and foods to avoid. App keeps those
- * choices so they survive edits to the ingredient list.
+ * choices so they survive edits to the ingredient list. Only after the
+ * allergy check is clear does RecipeResults search; any upstream change
+ * (ingredients, meanings, allergies) clears that and removes old results.
  */
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import './App.css'
 import { AllergyExclusions } from './components/AllergyExclusions'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
 import { NormalizedInventory } from './components/NormalizedInventory'
 import { PhotoCapture, type SelectedPhoto } from './components/PhotoCapture'
+import { RecipeResults } from './components/RecipeResults'
 import {
   rowsFromCandidates,
   type CandidateRow,
@@ -43,11 +46,18 @@ function App() {
   const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
   const [readyIngredients, setReadyIngredients] = useState<ReadyIngredient[] | null>(null)
   const [constraints, setConstraints] = useState<UserConstraints>(NO_CONSTRAINTS)
+  const [constraintsCleared, setConstraintsCleared] = useState(false)
 
   function changeInventory(next: ConfirmedInventory | null) {
     setInventory(next)
     setReadyIngredients(null)
+    setConstraintsCleared(false)
   }
+
+  const changeReadyIngredients = useCallback((next: ReadyIngredient[] | null) => {
+    setReadyIngredients(next)
+    setConstraintsCleared(false)
+  }, [])
 
   /**
    * Fetch guesses for a photo and move the screen to ready or failed. If the
@@ -174,7 +184,7 @@ function App() {
         <NormalizedInventory
           key={inventory.ingredients.map((item) => item.name).join('|')}
           inventory={inventory}
-          onReadyChange={setReadyIngredients}
+          onReadyChange={changeReadyIngredients}
         />
       ) : null}
 
@@ -184,6 +194,15 @@ function App() {
           ingredients={readyIngredients}
           constraints={constraints}
           onConstraintsChange={setConstraints}
+          onClearedChange={setConstraintsCleared}
+        />
+      ) : null}
+
+      {candidateStatus === 'ready' && inventory && readyIngredients && constraintsCleared ? (
+        <RecipeResults
+          key={JSON.stringify([readyIngredients.map((item) => item.name), constraints])}
+          ingredients={readyIngredients}
+          constraints={constraints}
         />
       ) : null}
     </main>
