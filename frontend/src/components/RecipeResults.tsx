@@ -18,6 +18,7 @@ import type { ReadyIngredient } from '../normalizeInventory'
 import {
   itemLabel,
   requestRecipeSearch,
+  stapleLabel,
   type Recipe,
   type RecipeSearchResult,
 } from '../recipeSearch'
@@ -185,7 +186,7 @@ function RecipeCard({ recipe, near }: { recipe: Recipe; near: boolean }) {
         {recipe.staples.length > 0 ? (
           <p className="hint">
             Also uses pantry staples we assume you have:{' '}
-            {recipe.staples.map((item) => item.name.toLowerCase()).join(', ')}.
+            {recipe.staples.map(stapleLabel).join(', ')}.
           </p>
         ) : null}
 

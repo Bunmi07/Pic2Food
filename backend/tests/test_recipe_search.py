@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 
 from backend.app import app, get_recipe_client
 from backend.config import RecipeSettings, load_recipe_settings
-from backend.constraints import build_constraints
+from backend.constraints import build_constraints, check_recipe
 from backend.feasibility import (
     NEAR_MATCH,
     NO_MATCH,
@@ -28,6 +28,7 @@ from backend.feasibility import (
     ingredient_keys,
     is_pantry_staple,
     score_recipe,
+    scored_to_dict,
     user_key_set,
 )
 from backend.mealdb_client import MealDbClient, RecipeSourceError, RecipeSourceTimeout
@@ -213,10 +214,30 @@ class MatchingTests(unittest.TestCase):
         self.assertNotIn("tomato", ingredient_keys("Tomato Puree"))
 
     def test_pantry_staples(self):
-        for name in ["Salt", "Sea Salt", "Black Pepper", "Extra Virgin Olive Oil", "Vegetable Oil"]:
+        for name in [
+            "Salt", "Sea Salt", "Black Pepper", "Extra Virgin Olive Oil", "Vegetable Oil",
+            "Water", "Cold Water", "Boiling Water", "Pepper", "Ground Pepper",
+        ]:
             self.assertTrue(is_pantry_staple(name), name)
-        for name in ["Peanut Oil", "Sesame Seed Oil", "Pepper", "Sugar", "Butter", "Water"]:
+        for name in [
+            "Peanut Oil", "Sesame Seed Oil", "Sugar", "Butter", "Red Pepper",
+            "Bell Pepper", "Cayenne Pepper", "Coconut Water",
+        ]:
             self.assertFalse(is_pantry_staple(name), name)
+
+    def test_bare_pepper_is_shown_as_assumed_black_pepper(self):
+        record = dict(RECIPES["1002"], strIngredient6="Pepper", strMeasure6="pinch")
+        scored = score_recipe(parse_recipe(record), user_key_set(["egg"]))
+        staples = scored_to_dict(scored)["staples"]
+        self.assertIn(
+            {"name": "Pepper", "measure": "pinch", "assumed_as": "black pepper"}, staples
+        )
+        self.assertIn({"name": "Salt", "measure": "pinch"}, staples)
+
+    def test_avoiding_black_pepper_also_blocks_bare_pepper(self):
+        constraints = build_constraints([], ["black pepper"])
+        self.assertFalse(check_recipe(["Eggs", "Pepper"], constraints).allowed)
+        self.assertTrue(check_recipe(["Eggs", "Red Pepper"], constraints).allowed)
 
     def test_staples_are_not_missing_or_matched(self):
         scored = score_recipe(parse_recipe(RECIPES["1002"]), user_key_set(["egg"]))

@@ -9,6 +9,7 @@ import {
   itemLabel,
   parseRecipeSearchResponse,
   requestRecipeSearch,
+  stapleLabel,
 } from '../src/recipeSearch.ts'
 
 function recipe(overrides: Record<string, unknown> = {}) {
@@ -147,6 +148,24 @@ test('a network failure or timeout becomes a retryable error', async () => {
     })) as unknown as typeof fetch
   const slow = await requestRecipeSearch(['egg'], { allergens: [], avoid: [] }, hanging, 20)
   assert.ok(!slow.ok && slow.canRetry && /too long/.test(slow.message))
+})
+
+test('shows how a vague staple was read, and rejects a blank reading', () => {
+  const staples = [
+    { name: 'Salt', measure: '' },
+    { name: 'Pepper', measure: 'pinch', assumed_as: 'black pepper' },
+  ]
+  const result = parseRecipeSearchResponse(200, answer({ recipes: [recipe({ staples })] }))
+  assert.ok(result.ok)
+  assert.deepEqual(result.recipes[0].staples.map(stapleLabel), [
+    'salt',
+    'pepper (we read this as black pepper)',
+  ])
+  const blank = [{ name: 'Pepper', measure: '', assumed_as: ' ' }]
+  assert.equal(
+    parseRecipeSearchResponse(200, answer({ recipes: [recipe({ staples: blank })] })).ok,
+    false,
+  )
 })
 
 test('labels items with the source measure exactly as written', () => {

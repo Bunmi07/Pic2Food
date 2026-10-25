@@ -268,7 +268,8 @@ This is a local prototype: it runs on the developer's machine only and is not ho
 
 Decided for these slices:
 
-- Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil).
+- Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil), and water.
+- A recipe ingredient written only as "Pepper" (or "Ground Pepper") is read as black pepper, so it counts as a staple, and the screen says so ("we read this as black pepper"). Allergy and food-to-avoid checks test both the written name and the assumed one. Named peppers (red, bell, cayenne, ...) are not assumed. Later idea, not MVP: work out the likely pepper from other recipes or another source.
 - Supported match: missing 2 or fewer ingredients after staples. Near match: missing exactly 3. Anything more is not shown.
 - If TheMealDB gives no original source link for a recipe, cite the TheMealDB recipe page.
 - Allergies: the user ticks any of nine allergens (milk, egg, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame), and the words each one covers live in `backend/data/allergen_groups.json`. Foods to avoid are typed freely and matched by name, plus alias-file names. If the typed word names a food family in `backend/data/food_families.json` ("pork", "meat", "dairy", "nuts", "gluten", "alcohol", ...), the whole family is blocked ("pork" blocks bacon, ham, lard, gelatin). Families may reuse allergen lists, so "dairy" gets the full milk list. Family lists need the same product review as the allergen list. Matching is whole-word and errs toward blocking ("peanut" blocks "peanut oil"; "nut" does not block "nutmeg").
@@ -277,7 +278,7 @@ Decided for these slices:
 - Allergy choices stay in the browser session and are never logged.
 - Retrieval settings (TheMealDB address and key, timeout, how many recipes to look up per search, and the match thresholds) are environment variables listed in `.env.example`.
 
-Open for product review: whether water counts as a pantry staple (today it counts as missing), and how many recipes to look up per search (today 25, the best-overlapping ones; a search can match hundreds).
+Open for product review: how many recipes to look up per search (today 25, the best-overlapping ones; a search can match hundreds), and growing the alias file so common recipe ingredients (parsley, red pepper, ...) don't trigger the allergy warning.
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

@@ -13,7 +13,8 @@ import type { UserConstraints } from './constraints'
 export const RECIPE_SEARCH_TIMEOUT_MS = 30_000
 export const MAX_RECIPES = 3
 
-export type RecipeItem = { name: string; measure: string }
+/** assumedAs: how we read a vague staple, e.g. "Pepper" read as black pepper. */
+export type RecipeItem = { name: string; measure: string; assumedAs?: string }
 
 export type Recipe = {
   id: string
@@ -120,7 +121,13 @@ function parseItems(raw: unknown): RecipeItem[] | null {
     if (!isRecord(entry) || !isNonEmpty(entry.name) || typeof entry.measure !== 'string') {
       return null
     }
-    items.push({ name: entry.name, measure: entry.measure })
+    if (entry.assumed_as === undefined) {
+      items.push({ name: entry.name, measure: entry.measure })
+    } else if (isNonEmpty(entry.assumed_as)) {
+      items.push({ name: entry.name, measure: entry.measure, assumedAs: entry.assumed_as })
+    } else {
+      return null
+    }
   }
   return items
 }
@@ -152,6 +159,12 @@ export async function requestRecipeSearch(
   } finally {
     clearTimeout(timer)
   }
+}
+
+/** A staple's name, plus how we read it when the recipe was vague. */
+export function stapleLabel(item: RecipeItem): string {
+  const name = item.name.toLowerCase()
+  return item.assumedAs ? `${name} (we read this as ${item.assumedAs})` : name
 }
 
 /** "2 eggs" style label, keeping the source's measure exactly as written. */

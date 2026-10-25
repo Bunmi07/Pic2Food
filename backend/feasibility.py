@@ -2,8 +2,9 @@
 
 For each recipe ingredient we decide one of three things:
 - matched: the user confirmed it ("Free-range Eggs, Beaten" matches "egg")
-- staple:  a pantry staple we assume (salt, black pepper, cooking oil);
-           never counted as missing, never added to the user's inventory
+- staple:  a pantry staple we assume (salt, black pepper, cooking oil, water);
+           never counted as missing, never added to the user's inventory.
+           A bare "Pepper" is read as black pepper, and the result says so.
 - missing: anything else
 
 Matching is rules-based, never fuzzy. Both sides are turned into "keys":
@@ -21,7 +22,7 @@ from dataclasses import dataclass
 from typing import Dict, FrozenSet, Iterable, List, Tuple
 
 from backend.config import RecipeSettings
-from backend.constraints import words
+from backend.constraints import assumed_meaning, words
 from backend.normalization import normalize_term, singular_forms
 from backend.recipes import RecipeIngredient, RecipeRecord
 
@@ -41,6 +42,7 @@ PANTRY_STAPLE_KEYS = frozenset(
         "black pepper", "ground black pepper", "black peppercorn",
         "oil", "cooking oil", "olive oil", "extra virgin olive oil", "vegetable oil",
         "sunflower oil", "rapeseed oil", "canola oil", "high heat cooking oil",
+        "water", "hot water", "warm water", "boiling water", "ice water", "tap water",
     ]
 )
 
@@ -72,7 +74,10 @@ def ingredient_keys(name: str) -> FrozenSet[str]:
 
 
 def is_pantry_staple(name: str) -> bool:
-    return bool(ingredient_keys(name) & PANTRY_STAPLE_KEYS)
+    if ingredient_keys(name) & PANTRY_STAPLE_KEYS:
+        return True
+    assumed = assumed_meaning(name)
+    return bool(assumed and ingredient_keys(assumed) & PANTRY_STAPLE_KEYS)
 
 
 @dataclass(frozen=True)
@@ -104,7 +109,7 @@ def score_recipe(
         keys = ingredient_keys(ingredient.name)
         if keys & user_keys:
             matched.append(ingredient)
-        elif keys & PANTRY_STAPLE_KEYS:
+        elif is_pantry_staple(ingredient.name):
             staples.append(ingredient)
         else:
             missing.append(ingredient)
@@ -132,9 +137,17 @@ def scored_to_dict(scored: ScoredRecipe) -> Dict[str, object]:
     def pairs(items: Tuple[RecipeIngredient, ...]) -> List[Dict[str, str]]:
         return [{"name": item.name, "measure": item.measure} for item in items]
 
+    staples = []
+    for item in scored.staples:
+        entry: Dict[str, str] = {"name": item.name, "measure": item.measure}
+        assumed = assumed_meaning(item.name)
+        if assumed:
+            entry["assumed_as"] = assumed
+        staples.append(entry)
+
     return {
         "matched": pairs(scored.matched),
         "missing": pairs(scored.missing),
-        "staples": pairs(scored.staples),
+        "staples": staples,
         "unchecked_allergy": list(scored.unchecked),
     }
