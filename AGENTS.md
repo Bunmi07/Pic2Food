@@ -152,7 +152,7 @@ The model may:
 - Propose possible ingredients visible in an uploaded image
 - Retrieval resolves to one of three states: supported match, near match (fails threshold by a small, defined missing-ingredient margin), or no supported match (abstain with a next step).
 - Near match reuses the existing missing-ingredient calculation; it changes only the display cutoff. It must not relax any hard constraint.
-- Feasibility threshold and near-match margin are configurable values, not hard-coded constants. Starting feasibility threshold: a recipe is a supported match when it is missing 2 or fewer ingredients (after pantry staples). Near-match margin: `[to be confirmed]`. A user-adjustable threshold is a possible future feature, not MVP scope.
+- Feasibility threshold and near-match margin are configurable values, not hard-coded constants. Starting feasibility threshold: a recipe is a supported match when it is missing 2 or fewer ingredients (after pantry staples). Near-match margin: 1 (a near match is missing exactly 3 ingredients after pantry staples). A user-adjustable threshold is a possible future feature, not MVP scope.
 - Identify ambiguous image regions
 - Return a limited set of ingredient candidates
 - Express uncertainty or decline to identify an item
@@ -242,7 +242,7 @@ Document only commands that have been verified to work:
 - Backend (Python) Environment setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, then copy `.env.example` to `.env` and add `OPENAI_API_KEY`
 - Frontend (React + TypeScript) environment setup: `cd frontend && npm install`
 - Local application(backend): `.venv/bin/uvicorn server:app --port 8000` (the frontend dev server proxies `/api` to it)
-- Frontend without the vision model (saved sample candidates): `cd frontend && VITE_CANDIDATE_SOURCE=fixture npm run dev`
+- Frontend without the vision model (saved sample candidates): `cd frontend && VITE_CANDIDATE_SOURCE=fixture npm run dev` (the backend must still be running for the ingredient-name step after confirming; no API key needed)
 - Unit tests (backend, standard-library unittest, model calls mocked): `.venv/bin/python -m unittest discover -s backend/tests -t .`
 - Local application(frontend): `cd frontend && npm run dev`
 - Unit tests (frontend, Node built-in test runner, Node 24+): `cd frontend && npm test`
@@ -253,34 +253,28 @@ This project intentionally uses two environments: a Python backend and a React +
 
 ## 9. Current Implementation Milestone
 
-Focus only on the first vertical slice:
+Done (merged or on review branches):
 
-- Mobile-first React application shell
-- Ingredient-photo selection or capture
-- Client-side image validation
-- Image preview, replacement, and removal
-- Fixture-backed ingredient candidates
-- Ingredient candidate presentation
-- User confirmation, correction, removal, and manual addition
-- Confirmed inventory creation
-- Prevention of unconfirmed ingredients from moving downstream
-- Loading, invalid-input, and safe failure states
+- Photo capture, client-side validation, downscaling, and metadata removal
+- Fixture-backed and live (OpenAI) ingredient candidates, with non-food and unreadable results
+- User confirmation, correction, removal, and manual addition; confirmed inventory
+- Ingredient normalization against `backend/data/ingredient_aliases.json`, with ambiguous terms resolved by the user and unknown terms logged
 
-The first vertical slice ends after producing the confirmed inventory.
+Next, in this order:
 
-Do not connect a live vision model, recipe API, recipe ranking, or generated explanation until this slice is working and tested.
+1. Allergies and exclusions: the user enters them before any recipe is suggested. They are hard constraints applied to every result, including near matches.
+2. Recipe retrieval from TheMealDB (the approved source for the MVP), with source name and link on every recipe.
+3. Deterministic feasibility and ranking: supported match, near match, or abstention, with matched and missing ingredients shown.
 
-Later MVP slices will add:
+Decided for these slices:
 
-- Live vision-based ingredient candidate extraction
-- Ingredient normalization
-- Constraint enforcement
-- Grounded recipe retrieval
-- Deterministic filtering and ranking
-- Source attribution
-- Missing-ingredient disclosure
-- Near-match and abstention behavior
-- Grounded explanation
+- Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil).
+- Supported match: missing 2 or fewer ingredients after staples. Near match: missing exactly 3. Anything more is not shown.
+- If TheMealDB gives no original source link for a recipe, cite the TheMealDB recipe page.
+
+Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
+
+Do not connect a recipe API, ranking, or generated explanation ahead of the allergy and exclusion step.
 
 Do not implement accounts, payments, grocery ordering, multi-day meal planning, medical nutrition guidance, recipe generation, autonomous agents, or image-based food-safety judgments.
 

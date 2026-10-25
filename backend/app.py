@@ -3,21 +3,27 @@
 POST /api/ingredient-candidates takes one prepared photo, asks the vision
 model for ingredient guesses, and returns them for the user to confirm.
 
-This file only runs the request step by step. The work itself lives in
+POST /api/normalize-ingredients takes the user's confirmed ingredient names
+and returns one standard name for each (or flags it as ambiguous/unknown).
+
+This file only runs the requests step by step. The work itself lives in
 separate modules: image_validation.py (is the photo acceptable),
-vision_client.py (call OpenAI), and candidates.py (check the answer).
+vision_client.py (call OpenAI), candidates.py (check the answer), and
+normalization.py (standard names).
 """
 
 import logging
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from backend.candidates import VisionOutputError, parse_vision_output
 from backend.config import load_vision_settings
 from backend.image_validation import MAX_UPLOAD_BYTES, validate_jpeg_upload
+from backend.normalization import normalize_term
 from backend.vision_client import (
     VisionCallError,
     VisionTimeoutError,
@@ -27,10 +33,18 @@ from backend.vision_client import (
 load_dotenv()
 
 logger = logging.getLogger("pic2food")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s %(message)s"))
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
 
 app = FastAPI(title="Pic2Food")
 
 VisionCaller = Callable[[bytes], str]
+
+MAX_NORMALIZE_ITEMS = 50
+MAX_INGREDIENT_NAME_LENGTH = 60
 
 
 def get_vision_caller() -> Optional[VisionCaller]:
@@ -44,9 +58,11 @@ def get_vision_caller() -> Optional[VisionCaller]:
     return lambda image: request_ingredient_candidates(image, settings)
 
 
-def error_response(status_code: int, code: str) -> JSONResponse:
+def error_response(
+    status_code: int, code: str, endpoint: str = "ingredient_candidates"
+) -> JSONResponse:
     """Log a failure (never the image) and return {"error": code}."""
-    logger.warning("ingredient_candidates outcome=error code=%s", code)
+    logger.warning("%s outcome=error code=%s", endpoint, code)
     return JSONResponse(status_code=status_code, content={"error": code})
 
 
@@ -97,3 +113,40 @@ def ingredient_candidates(
         len(result.get("items", [])),
     )
     return result
+
+
+class NormalizeRequest(BaseModel):
+    ingredients: List[str]
+
+
+@app.post("/api/normalize-ingredients")
+def normalize_ingredients(request: NormalizeRequest):
+    """Confirmed names in, one result per name out, in the same order.
+
+    Each result is {"input", "status"} plus "canonical" when known or
+    "options" when ambiguous. Unknown names are logged for later review and
+    are never mapped to a guess.
+    """
+    names = request.ingredients
+    if (
+        not names
+        or len(names) > MAX_NORMALIZE_ITEMS
+        or any(
+            not name.strip() or len(name) > MAX_INGREDIENT_NAME_LENGTH for name in names
+        )
+    ):
+        return error_response(400, "invalid_ingredients", "normalize_ingredients")
+
+    results = []
+    for name in names:
+        result = normalize_term(name)
+        if result.status == "unknown":
+            logger.info("unknown_ingredient_term term=%r", name.strip().lower())
+        entry = {"input": result.input, "status": result.status}
+        if result.canonical:
+            entry["canonical"] = result.canonical
+        if result.options:
+            entry["options"] = result.options
+        results.append(entry)
+
+    return {"results": results}
