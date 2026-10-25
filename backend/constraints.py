@@ -85,6 +85,30 @@ def words(text: str) -> Phrase:
     return tuple(re.findall(r"[a-z0-9]+", plain.lower()))
 
 
+# Preparation words that don't change what the food is ("chopped parsley" is
+# parsley). Shared with feasibility.py so matching and review agree.
+DESCRIPTOR_WORDS = frozenset(
+    """
+    chopped diced sliced minced grated shredded crushed beaten fresh freshly large small
+    medium whole raw free range organic peeled cubed finely roughly thinly
+    softened melted chilled cold can tin jar of a an the
+    """.split()
+)
+
+# Recipes often write just "Pepper". By product decision we read that as black
+# pepper and say so on screen; allergy and avoid checks test both readings.
+ASSUMED_RECIPE_MEANINGS = {
+    ("pepper",): "black pepper",
+    ("ground", "pepper"): "ground black pepper",
+}
+
+
+def assumed_meaning(name: str) -> Optional[str]:
+    """The reading we assume for a vague recipe ingredient, if we have one."""
+    return ASSUMED_RECIPE_MEANINGS.get(words(name))
+
+
+@lru_cache(maxsize=16384)
 def _word_keys(word: str) -> FrozenSet[str]:
     return frozenset([word] + singular_forms(word))
 
@@ -238,9 +262,16 @@ def matches_group(ingredient: Phrase, group: AllergenGroup) -> bool:
     return any(contains_phrase(ingredient, phrase) for phrase in group.terms)
 
 
+@lru_cache(maxsize=8192)
 def is_reviewed(name: str, ingredient: Phrase) -> bool:
-    """We know what this ingredient is: it's in the alias file or the allergen file."""
+    """We know what this ingredient is: it's in the alias file or the allergen file.
+
+    Preparation words are ignored, so "Chopped Parsley" counts if parsley does.
+    """
     if normalize_term(" ".join(ingredient)).status != "unknown":
+        return True
+    core = " ".join(word for word in ingredient if word not in DESCRIPTOR_WORDS)
+    if core and normalize_term(core).status != "unknown":
         return True
     if normalize_term(name).status != "unknown":
         return True
@@ -257,14 +288,16 @@ def is_reviewed(name: str, ingredient: Phrase) -> bool:
 def check_ingredient(name: str, constraints: Constraints) -> IngredientCheck:
     """Which of the user's allergies or avoided foods this one ingredient hits."""
     ingredient = words(name)
+    assumed = assumed_meaning(name)
+    readings = [ingredient] + ([words(assumed)] if assumed else [])
     check = IngredientCheck()
     for group in constraints.allergens:
-        if matches_group(ingredient, group):
+        if any(matches_group(reading, group) for reading in readings):
             check.reasons.append({"type": "allergy", "id": group.id, "label": group.label})
     for term in constraints.avoid:
-        if any(contains_phrase(ingredient, phrase) for phrase in term.phrases) or any(
-            matches_group(ingredient, group) for group in term.groups
-        ):
+        if any(
+            contains_phrase(reading, phrase) for reading in readings for phrase in term.phrases
+        ) or any(matches_group(reading, group) for reading in readings for group in term.groups):
             check.reasons.append({"type": "avoid", "term": term.original})
     if constraints.allergens and not check.blocked and not is_reviewed(name, ingredient):
         check.unchecked = True

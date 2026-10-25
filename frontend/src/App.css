@@ -342,3 +342,75 @@
   margin: 0.5rem 0 0;
   padding-left: 1.15rem;
 }
+
+.card a {
+  color: var(--accent-text);
+}
+
+.recipe-card {
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.recipe-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.recipe-body {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.recipe-body h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.1rem;
+}
+
+.recipe-body h4 {
+  margin: 0.85rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.card .recipe-meta {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.card .badge {
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+
+.card .recipe-warning {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--warning-text);
+  border-radius: 10px;
+  color: var(--warning-text);
+  font-size: 0.92rem;
+}
+
+.swap-note {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--warning-text);
+}
+
+.recipe-details {
+  margin-top: 0.85rem;
+}
+
+.recipe-details summary {
+  cursor: pointer;
+  color: var(--accent-text);
+}

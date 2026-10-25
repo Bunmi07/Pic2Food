@@ -260,22 +260,30 @@ Done (merged or on review branches):
 - Fixture-backed and live (OpenAI) ingredient candidates, with non-food and unreadable results
 - User confirmation, correction, removal, and manual addition; confirmed inventory
 - Ingredient normalization against `backend/data/ingredient_aliases.json`, with ambiguous terms resolved by the user and unknown terms logged
+- Allergies and foods to avoid, entered before any recipe is suggested and applied as hard constraints to every result, including near matches (`backend/constraints.py`)
+- Recipe retrieval from TheMealDB (`backend/mealdb_client.py`, `backend/recipe_search.py`), with source name and link on every recipe and malformed records skipped
+- Deterministic feasibility and ranking (`backend/feasibility.py`): supported match, near match, or abstention, with matched, missing, and assumed-staple ingredients shown (`frontend/src/components/RecipeResults.tsx`)
 
-Next, in this order:
-
-1. Allergies and exclusions (built; the filter `check_recipe` in `backend/constraints.py` is ready for retrieval to use): the user enters them before any recipe is suggested. They are hard constraints applied to every result, including near matches.
-2. Recipe retrieval from TheMealDB (the approved source for the MVP), with source name and link on every recipe.
-3. Deterministic feasibility and ranking: supported match, near match, or abstention, with matched and missing ingredients shown.
+This is a local prototype: it runs on the developer's machine only and is not hosted.
 
 Decided for these slices:
 
-- Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil).
+- Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil), and water.
+- A recipe ingredient written only as "Pepper" (or "Ground Pepper") is read as black pepper, so it counts as a staple, and the screen says so ("we read this as black pepper"). Allergy and food-to-avoid checks test both the written name and the assumed one. Named peppers (red, bell, cayenne, ...) are not assumed. Later idea, not MVP: work out the likely pepper from other recipes or another source.
 - Supported match: missing 2 or fewer ingredients after staples. Near match: missing exactly 3. Anything more is not shown.
 - If TheMealDB gives no original source link for a recipe, cite the TheMealDB recipe page.
 - Allergies: the user ticks any of nine allergens (milk, egg, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame), and the words each one covers live in `backend/data/allergen_groups.json`. Foods to avoid are typed freely and matched by name, plus alias-file names. If the typed word names a food family in `backend/data/food_families.json` ("pork", "meat", "dairy", "nuts", "gluten", "alcohol", ...), the whole family is blocked ("pork" blocks bacon, ham, lard, gelatin). Families may reuse allergen lists, so "dairy" gets the full milk list. Family lists need the same product review as the allergen list. Matching is whole-word and errs toward blocking ("peanut" blocks "peanut oil"; "nut" does not block "nutmeg").
 - If a confirmed ingredient clashes with an allergy or a food to avoid, recipe search is blocked until the user removes the ingredient or changes the allergy. Nothing is removed automatically.
 - If a recipe ingredient can't be checked against the user's allergies (it isn't in the alias or allergen file), the recipe may be shown, but only with a visible warning naming those ingredients. A blocked ingredient always removes the recipe.
 - Allergy choices stay in the browser session and are never logged.
+- Every search checks TheMealDB's whole catalog (about 800 recipes), loaded into server memory on the first search and reloaded after `RECIPE_CATALOG_HOURS` (default 24). Nothing is written to disk.
+- Retrieval settings (TheMealDB address and key, timeout, catalog reload hours, and the match thresholds) are environment variables listed in `.env.example`.
+
+- The alias file covers the most common TheMealDB ingredients (single, whole foods only). Blends and packaged products whose contents vary by brand (stock cubes, curry pastes, sauces, spice blends, baking powder, plain "oil" or "vinegar") are deliberately left out so they keep the allergy warning. Preparation words ("chopped", "fresh") are ignored when deciding whether an ingredient is recognized.
+
+Signed off Oct 2026: the alias, allergen, and food-family additions from the TheMealDB catalog review, including "red pepper" read as bell pepper; marshmallow treated as pork (gelatin); gochujang, doubanjiang, and chilli bean paste blocked for both wheat and soy; oats recognized (not wheat, though often cross-contaminated).
+
+Decided Oct 2026: coconut is not a tree nut (recognized, never blocked by the tree-nut allergy). Sugar types are swappable: if the user has any sugar and the recipe asks for a different type (caster, icing, brown, ...), it counts as something they have, with a visible note naming both so the user judges. With no sugar at all it is still missing. Exact matches rank above swaps. The swap groups live in `SWAP_GROUPS` in `backend/feasibility.py`.
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

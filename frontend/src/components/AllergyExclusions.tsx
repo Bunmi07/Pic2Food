@@ -5,7 +5,8 @@
  * avoid, then presses the button to check. If a confirmed ingredient clashes
  * (for example egg with an egg allergy), recipe search is blocked until the
  * user removes the ingredient or unticks the allergy. Choices are owned by
- * App so they survive edits to the ingredient list.
+ * App so they survive edits to the ingredient list. App is told whether the
+ * check is clear (onClearedChange); only a clear check starts recipe search.
  */
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
@@ -25,6 +26,7 @@ type AllergyExclusionsProps = {
   ingredients: ReadyIngredient[]
   constraints: UserConstraints
   onConstraintsChange: (constraints: UserConstraints) => void
+  onClearedChange: (cleared: boolean) => void
 }
 
 type CheckState =
@@ -38,6 +40,7 @@ export function AllergyExclusions({
   ingredients,
   constraints,
   onConstraintsChange,
+  onClearedChange,
 }: AllergyExclusionsProps) {
   const cardRef = useRef<HTMLElement>(null)
   const checkGeneration = useRef(0)
@@ -51,6 +54,7 @@ export function AllergyExclusions({
   function update(next: UserConstraints) {
     checkGeneration.current += 1
     setCheck({ status: 'idle' })
+    onClearedChange(false)
     onConstraintsChange(next)
   }
 
@@ -78,6 +82,7 @@ export function AllergyExclusions({
   async function runCheck() {
     const generation = ++checkGeneration.current
     setCheck({ status: 'checking' })
+    onClearedChange(false)
     const result = await requestConstraintCheck(
       ingredients.map((item) => item.name),
       constraints,
@@ -91,6 +96,7 @@ export function AllergyExclusions({
       setCheck({ status: 'blocked', conflicts: result.conflicts })
     } else {
       setCheck({ status: 'clear' })
+      onClearedChange(true)
     }
   }
 
@@ -202,14 +208,13 @@ export function AllergyExclusions({
 
         {check.status === 'clear' ? (
           <div className="inventory">
-            <h3>Ready to search</h3>
+            <h3>Searching with these filters</h3>
             <p className="hint">
               {allergenLabels.length > 0
                 ? `Leaving out: ${allergenLabels.join(', ')}.`
                 : 'No allergies set.'}{' '}
               {constraints.avoid.length > 0 ? `Avoiding: ${constraints.avoid.join(', ')}.` : ''}
             </p>
-            <p className="hint">Recipe search is the next step and isn’t wired yet.</p>
           </div>
         ) : null}
       </div>

@@ -4,7 +4,8 @@
     "terms": [
       "pork", "bacon", "ham", "gammon", "prosciutto", "pancetta", "guanciale", "speck",
       "chorizo", "salami", "pepperoni", "mortadella", "sausage", "bratwurst", "frankfurter",
-      "hot dog", "lard", "pork rind", "chicharron", "spare rib", "gelatin", "gelatine"
+      "hot dog", "lard", "pork rind", "chicharron", "spare rib", "gelatin", "gelatine",
+      "pig", "black pudding", "morcilla", "kielbasa", "kabanos", "jamon", "marshmallow"
     ],
     "except": ["beef gelatin", "beef gelatine", "fish gelatin", "fish gelatine"],
     "includes": []
@@ -13,7 +14,7 @@
     "names": ["beef", "cow"],
     "terms": [
       "beef", "veal", "steak", "brisket", "sirloin", "ribeye", "rib eye", "short rib",
-      "oxtail", "pastrami", "bresaola", "burger", "suet", "tallow", "bone marrow"
+      "oxtail", "pastrami", "bresaola", "burger", "suet", "tallow", "bone marrow", "chuck"
     ],
     "except": [],
     "includes": []
@@ -56,7 +57,7 @@
   },
   "gluten": {
     "names": ["gluten"],
-    "terms": ["gluten", "barley", "rye", "spelt", "malt", "malt vinegar", "beer"],
+    "terms": ["gluten", "barley", "rye", "spelt", "malt", "malt vinegar", "beer", "rice krispies"],
     "except": [],
     "includes": ["allergen:wheat"]
   },
@@ -66,7 +67,7 @@
       "alcohol", "wine", "beer", "ale", "lager", "stout", "cider", "rum", "vodka", "gin",
       "tequila", "brandy", "cognac", "whisky", "whiskey", "bourbon", "sherry", "port",
       "marsala", "vermouth", "sake", "mirin", "champagne", "prosecco", "liqueur", "kirsch",
-      "amaretto"
+      "amaretto", "grand marnier"
     ],
     "except": ["wine vinegar", "rice wine vinegar", "cider vinegar", "ginger ale", "root beer"],
     "includes": []
