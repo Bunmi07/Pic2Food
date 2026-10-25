@@ -10,14 +10,18 @@ POST /api/check-constraints takes the ready ingredient list plus the user's
 allergies and foods to avoid, and reports any confirmed ingredient that
 clashes with them (recipe search stays blocked until there are none).
 
+POST /api/recipe-search takes the same request and returns up to three
+sourced TheMealDB recipes: a supported match, a near match, or no match.
+
 This file only runs the requests step by step. The work itself lives in
 separate modules: image_validation.py (is the photo acceptable),
 vision_client.py (call OpenAI), candidates.py (check the answer),
-normalization.py (standard names), and constraints.py (allergy filter).
+normalization.py (standard names), constraints.py (allergy filter), and
+recipe_search.py (retrieval, filtering, and ranking).
 """
 
 import logging
-from typing import Callable, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, UploadFile
@@ -25,10 +29,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from backend.candidates import VisionOutputError, parse_vision_output
-from backend.config import load_vision_settings
+from backend.config import load_recipe_settings, load_vision_settings
 from backend.constraints import build_constraints, find_inventory_conflicts
 from backend.image_validation import MAX_UPLOAD_BYTES, validate_jpeg_upload
+from backend.mealdb_client import MealDbClient, RecipeSourceError, RecipeSourceTimeout
 from backend.normalization import normalize_term
+from backend.recipe_search import search_recipes
 from backend.vision_client import (
     VisionCallError,
     VisionTimeoutError,
@@ -185,3 +191,47 @@ def check_constraints(request: ConstraintsRequest):
     conflicts = find_inventory_conflicts(request.ingredients, constraints)
     logger.info("check_constraints conflicts=%d", len(conflicts))
     return {"conflicts": conflicts}
+
+
+def get_recipe_client() -> Iterator[MealDbClient]:
+    """A TheMealDB client for one request. Tests replace this with a fake source."""
+    client = MealDbClient(load_recipe_settings())
+    try:
+        yield client
+    finally:
+        client.close()
+
+
+@app.post("/api/recipe-search")
+def recipe_search(
+    request: ConstraintsRequest,
+    client: MealDbClient = Depends(get_recipe_client),
+):
+    """Ready ingredients + allergies/foods to avoid in, sourced recipes out.
+
+    Possible answers:
+    - 200 {"status": "supported" | "near_match" | "no_match", "recipes", "not_found"}
+    - 400 invalid_constraints                bad request
+    - 409 constraint_conflict                a confirmed ingredient clashes; search refused
+    - 502 recipe_source_failed               TheMealDB failed or sent unusable data
+    - 504 recipe_source_timeout              TheMealDB took too long
+    """
+    if (
+        not request.ingredients
+        or not valid_names(request.ingredients, MAX_NORMALIZE_ITEMS)
+        or not valid_names(request.avoid, MAX_AVOID_ITEMS)
+    ):
+        return error_response(400, "invalid_constraints", "recipe_search")
+    try:
+        constraints = build_constraints(request.allergens, request.avoid)
+    except ValueError:
+        return error_response(400, "invalid_constraints", "recipe_search")
+    if find_inventory_conflicts(request.ingredients, constraints):
+        return error_response(409, "constraint_conflict", "recipe_search")
+
+    try:
+        return search_recipes(request.ingredients, constraints, client, client.settings)
+    except RecipeSourceTimeout:
+        return error_response(504, "recipe_source_timeout", "recipe_search")
+    except RecipeSourceError:
+        return error_response(502, "recipe_source_failed", "recipe_search")
