@@ -281,7 +281,7 @@ Decided for these slices:
 
 - The alias file covers the most common TheMealDB ingredients (single, whole foods only). Blends and packaged products whose contents vary by brand (stock cubes, curry pastes, sauces, spice blends, baking powder, plain "oil" or "vinegar") are deliberately left out so they keep the allergy warning. Preparation words ("chopped", "fresh") are ignored when deciding whether an ingredient is recognized.
 
-Open for product review (draft added Oct 2026, needs sign-off): the alias additions and allergen and food-family additions from the TheMealDB catalog review, plus these calls: "red pepper" read as bell pepper; marshmallow treated as pork (gelatin); gochujang, doubanjiang, and chilli bean paste blocked for both wheat and soy; oats recognized (not wheat, though often cross-contaminated).
+Signed off Oct 2026: the alias, allergen, and food-family additions from the TheMealDB catalog review, including "red pepper" read as bell pepper; marshmallow treated as pork (gelatin); gochujang, doubanjiang, and chilli bean paste blocked for both wheat and soy; oats recognized (not wheat, though often cross-contaminated).
 
 Decided Oct 2026: coconut is not a tree nut (recognized, never blocked by the tree-nut allergy). Sugar types are swappable: if the user has any sugar and the recipe asks for a different type (caster, icing, brown, ...), it counts as something they have, with a visible note naming both so the user judges. With no sugar at all it is still missing. Exact matches rank above swaps. The swap groups live in `SWAP_GROUPS` in `backend/feasibility.py`.
 
