@@ -6,15 +6,14 @@
       "chorizo", "salami", "pepperoni", "mortadella", "sausage", "bratwurst", "frankfurter",
       "hot dog", "lard", "pork rind", "chicharron", "spare rib", "gelatin", "gelatine"
     ],
-    "except": [],
+    "except": ["beef gelatin", "beef gelatine", "fish gelatin", "fish gelatine"],
     "includes": []
   },
   "beef": {
     "names": ["beef", "cow"],
     "terms": [
       "beef", "veal", "steak", "brisket", "sirloin", "ribeye", "rib eye", "short rib",
-      "oxtail", "pastrami", "bresaola", "burger", "suet", "tallow", "bone marrow",
-      "gelatin", "gelatine"
+      "oxtail", "pastrami", "bresaola", "burger", "suet", "tallow", "bone marrow"
     ],
     "except": [],
     "includes": []

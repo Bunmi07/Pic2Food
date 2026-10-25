@@ -112,6 +112,11 @@ class FoodFamilyTests(unittest.TestCase):
             self.assertTrue(blocked(name, avoid=["pork"]), name)
         self.assertFalse(blocked("Hamburger Buns", avoid=["pork"]))
 
+    def test_gelatin_counts_as_pork_unless_labelled_otherwise(self):
+        self.assertFalse(blocked("Gelatin", avoid=["beef"]))
+        self.assertTrue(blocked("Beef Gelatin", avoid=["beef"]))
+        self.assertFalse(blocked("Beef Gelatin", avoid=["pork"]))
+
     def test_families_reuse_allergen_lists(self):
         self.assertTrue(blocked("Parmesan", avoid=["dairy"]))
         self.assertFalse(blocked("Coconut Milk", avoid=["dairy"]))
