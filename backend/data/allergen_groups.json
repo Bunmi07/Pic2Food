@@ -1,0 +1,85 @@
+{
+  "milk": {
+    "label": "Milk",
+    "terms": [
+      "milk", "butter", "buttermilk", "ghee", "cream", "sour cream", "creme fraiche",
+      "cheese", "cream cheese", "parmesan", "parmigiano", "mozzarella", "cheddar", "feta",
+      "ricotta", "mascarpone", "gruyere", "halloumi", "paneer", "brie", "camembert",
+      "gouda", "stilton", "pecorino", "emmental", "yogurt", "yoghurt", "kefir", "whey",
+      "casein", "custard", "ice cream", "chocolate", "nutella", "pesto"
+    ],
+    "except": [
+      "coconut milk", "coconut cream", "almond milk", "oat milk", "soy milk", "soya milk",
+      "rice milk", "peanut butter", "almond butter", "cashew butter", "cocoa butter",
+      "butter bean", "cream of tartar"
+    ]
+  },
+  "egg": {
+    "label": "Egg",
+    "terms": [
+      "egg", "egg white", "egg yolk", "mayonnaise", "mayo", "aioli", "meringue",
+      "hollandaise", "custard", "brioche"
+    ],
+    "except": []
+  },
+  "fish": {
+    "label": "Fish",
+    "terms": [
+      "fish", "fish sauce", "salmon", "tuna", "cod", "haddock", "anchovy", "sardine",
+      "mackerel", "trout", "tilapia", "halibut", "sea bass", "bass", "snapper", "pollock",
+      "swordfish", "monkfish", "herring", "kipper", "worcestershire", "worcestershire sauce",
+      "caesar dressing", "dashi", "bonito"
+    ],
+    "except": []
+  },
+  "shellfish": {
+    "label": "Shellfish",
+    "terms": [
+      "shellfish", "shrimp", "prawn", "crab", "lobster", "crayfish", "langoustine",
+      "scallop", "mussel", "clam", "oyster", "oyster sauce", "squid", "calamari", "octopus"
+    ],
+    "except": []
+  },
+  "tree_nuts": {
+    "label": "Tree nuts",
+    "terms": [
+      "nut", "almond", "walnut", "cashew", "pecan", "pistachio", "hazelnut", "macadamia",
+      "brazil nut", "pine nut", "marzipan", "praline", "nutella", "pesto", "frangipane"
+    ],
+    "except": []
+  },
+  "peanuts": {
+    "label": "Peanuts",
+    "terms": ["peanut", "peanut butter", "peanut oil", "groundnut", "monkey nut", "satay"],
+    "except": []
+  },
+  "wheat": {
+    "label": "Wheat",
+    "terms": [
+      "wheat", "flour", "bread", "breadcrumb", "panko", "crouton", "pasta", "spaghetti",
+      "macaroni", "penne", "lasagne", "lasagna", "fettuccine", "linguine", "tagliatelle",
+      "farfalle", "rigatoni", "fusilli", "noodle", "udon", "ramen", "couscous", "bulgur",
+      "semolina", "seitan", "pastry", "puff pastry", "filo", "phyllo", "dough", "tortilla",
+      "pita", "naan", "bun", "roll", "bagel", "croissant", "brioche", "biscuit", "cracker",
+      "cake", "cookie", "pancake", "soy sauce", "hoisin", "teriyaki"
+    ],
+    "except": [
+      "rice flour", "corn flour", "almond flour", "coconut flour", "chickpea flour",
+      "gram flour", "potato flour", "tapioca flour", "buckwheat flour", "gluten free flour",
+      "rice noodle", "glass noodle", "rice vermicelli", "corn tortilla", "rice paper roll"
+    ]
+  },
+  "soy": {
+    "label": "Soy",
+    "terms": [
+      "soy", "soya", "soybean", "soy sauce", "tofu", "bean curd", "tempeh", "edamame",
+      "miso", "tamari", "teriyaki", "hoisin"
+    ],
+    "except": []
+  },
+  "sesame": {
+    "label": "Sesame",
+    "terms": ["sesame", "sesame oil", "sesame seed", "tahini", "hummus", "halva"],
+    "except": []
+  }
+}

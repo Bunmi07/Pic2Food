@@ -4,7 +4,7 @@
  * Fetches a standard name for each confirmed ingredient and shows what each
  * one became. Asks the user to pick a meaning for ambiguous names, and flags
  * names we don't recognize (they're kept as typed). Only when every choice
- * is made does it show the final list recipe search will use.
+ * is made does it show the final list and hand it to App (onReadyChange).
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ConfirmedInventory } from '../confirmedInventory'
@@ -12,10 +12,18 @@ import {
   buildReadyInventory,
   requestNormalization,
   type NormalizationResult,
+  type ReadyIngredient,
 } from '../normalizeInventory'
 
 type NormalizedInventoryProps = {
   inventory: ConfirmedInventory
+  /** Called with the final list once every ambiguous name has a choice, else null. */
+  onReadyChange: (ingredients: ReadyIngredient[] | null) => void
+}
+
+function readyOrNull(results: NormalizationResult[], choices: Record<number, string>) {
+  const built = buildReadyInventory(results, choices)
+  return built.ready ? built.ingredients : null
 }
 
 type LoadState =
@@ -23,7 +31,7 @@ type LoadState =
   | { status: 'failed'; message: string }
   | { status: 'loaded'; results: NormalizationResult[] }
 
-export function NormalizedInventory({ inventory }: NormalizedInventoryProps) {
+export function NormalizedInventory({ inventory, onReadyChange }: NormalizedInventoryProps) {
   const cardRef = useRef<HTMLElement>(null)
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
@@ -36,16 +44,19 @@ export function NormalizedInventory({ inventory }: NormalizedInventoryProps) {
       if (cancelled) {
         return
       }
-      setState(
-        result.ok
-          ? { status: 'loaded', results: result.results }
-          : { status: 'failed', message: result.message },
-      )
+      if (result.ok) {
+        setChoices({})
+        setState({ status: 'loaded', results: result.results })
+        onReadyChange(readyOrNull(result.results, {}))
+      } else {
+        setState({ status: 'failed', message: result.message })
+        onReadyChange(null)
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [inventory, attempt])
+  }, [inventory, attempt, onReadyChange])
 
   useEffect(() => {
     cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -54,6 +65,13 @@ export function NormalizedInventory({ inventory }: NormalizedInventoryProps) {
   function retry() {
     setState({ status: 'loading' })
     setAttempt((value) => value + 1)
+  }
+
+  function choose(next: Record<number, string>) {
+    setChoices(next)
+    if (state.status === 'loaded') {
+      onReadyChange(readyOrNull(state.results, next))
+    }
   }
 
   return (
@@ -74,7 +92,7 @@ export function NormalizedInventory({ inventory }: NormalizedInventoryProps) {
       ) : null}
 
       {state.status === 'loaded' ? (
-        <LoadedList results={state.results} choices={choices} onChoose={setChoices} />
+        <LoadedList results={state.results} choices={choices} onChoose={choose} />
       ) : null}
     </section>
   )
@@ -142,7 +160,7 @@ function LoadedList({ results, choices, onChoose }: LoadedListProps) {
             {ready.ingredients.length} ingredient
             {ready.ingredients.length === 1 ? '' : 's'} ready
           </h3>
-          <p className="hint">Recipe search is the next step and isn’t wired yet.</p>
+          <p className="hint">Next: tell us about allergies and foods to avoid.</p>
           <ul>
             {ready.ingredients.map((item) => (
               <li key={item.name}>{item.name}</li>

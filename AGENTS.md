@@ -179,6 +179,7 @@ Use an LLM only for bounded tasks where it adds value. LLM output must not bypas
 - Python is the chosen backend language. React with TypeScript is the chosen frontend stack. Maintain explicit, validated data contracts across the frontend-backend boundary.
 - The React and TypeScript choice is intentional because the confirmation interface will contain multiple interactive states and structured data objects. Do not migrate to another frontend framework without explicit approval.
 - Use clear names and explicit error handling.
+- Colors come only from the CSS variables in `frontend/src/index.css`; never hard-code a color in a component or stylesheet. Text meets WCAG AA contrast (4.5:1; 3:1 for large text), and control edges, focus rings, and icons meet 3:1. Re-check ratios when a color changes. Dark is the only theme today; a light theme (and following the device setting) is planned, so keep everything themeable through those variables.
 - Start every source file with a short plain-language comment saying what the file is for and how it fits the flow. Add a one- or two-line comment to key classes and functions (the ones other files call, or that enforce a product rule). Skip comments on small helpers whose names already say what they do. Keep these comments current when behavior changes.
 - Keep model prompts separate from request-handling and business logic.
 - Validate all model and external API responses before downstream use.
@@ -262,7 +263,7 @@ Done (merged or on review branches):
 
 Next, in this order:
 
-1. Allergies and exclusions: the user enters them before any recipe is suggested. They are hard constraints applied to every result, including near matches.
+1. Allergies and exclusions (built; the filter `check_recipe` in `backend/constraints.py` is ready for retrieval to use): the user enters them before any recipe is suggested. They are hard constraints applied to every result, including near matches.
 2. Recipe retrieval from TheMealDB (the approved source for the MVP), with source name and link on every recipe.
 3. Deterministic feasibility and ranking: supported match, near match, or abstention, with matched and missing ingredients shown.
 
@@ -271,6 +272,10 @@ Decided for these slices:
 - Pantry staples (never counted as missing): salt, black pepper, cooking oil (including olive oil).
 - Supported match: missing 2 or fewer ingredients after staples. Near match: missing exactly 3. Anything more is not shown.
 - If TheMealDB gives no original source link for a recipe, cite the TheMealDB recipe page.
+- Allergies: the user ticks any of nine allergens (milk, egg, fish, shellfish, tree nuts, peanuts, wheat, soy, sesame), and the words each one covers live in `backend/data/allergen_groups.json`. Foods to avoid are typed freely and matched by name, plus alias-file names. If the typed word names a food family in `backend/data/food_families.json` ("pork", "meat", "dairy", "nuts", "gluten", "alcohol", ...), the whole family is blocked ("pork" blocks bacon, ham, lard, gelatin). Families may reuse allergen lists, so "dairy" gets the full milk list. Family lists need the same product review as the allergen list. Matching is whole-word and errs toward blocking ("peanut" blocks "peanut oil"; "nut" does not block "nutmeg").
+- If a confirmed ingredient clashes with an allergy or a food to avoid, recipe search is blocked until the user removes the ingredient or changes the allergy. Nothing is removed automatically.
+- If a recipe ingredient can't be checked against the user's allergies (it isn't in the alias or allergen file), the recipe may be shown, but only with a visible warning naming those ingredients. A blocked ingredient always removes the recipe.
+- Allergy choices stay in the browser session and are never logged.
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

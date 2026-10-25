@@ -5,10 +5,13 @@
  * Owns the flow between those steps. When a photo is ready it asks for
  * ingredient guesses, logs which ones were shown, and hands them to
  * IngredientConfirmation. Once the user confirms, NormalizedInventory turns
- * the confirmed names into standard names for recipe search.
+ * the confirmed names into standard names for recipe search, and then
+ * AllergyExclusions collects allergies and foods to avoid. App keeps those
+ * choices so they survive edits to the ingredient list.
  */
 import { useRef, useState } from 'react'
 import './App.css'
+import { AllergyExclusions } from './components/AllergyExclusions'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
 import { NormalizedInventory } from './components/NormalizedInventory'
 import { PhotoCapture, type SelectedPhoto } from './components/PhotoCapture'
@@ -17,12 +20,14 @@ import {
   type CandidateRow,
   type ConfirmedInventory,
 } from './confirmedInventory'
+import { NO_CONSTRAINTS, type UserConstraints } from './constraints'
 import { logEvaluationEvent } from './eventLog'
 import {
   loadIngredientCandidates,
   type CandidateLoadResult,
   type CandidateSource,
 } from './loadIngredientCandidates'
+import type { ReadyIngredient } from './normalizeInventory'
 
 type FailedLoad = Extract<CandidateLoadResult, { ok: false }>
 
@@ -36,6 +41,13 @@ function App() {
   const [source, setSource] = useState<CandidateSource>('vision')
   const [rows, setRows] = useState<CandidateRow[]>([])
   const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
+  const [readyIngredients, setReadyIngredients] = useState<ReadyIngredient[] | null>(null)
+  const [constraints, setConstraints] = useState<UserConstraints>(NO_CONSTRAINTS)
+
+  function changeInventory(next: ConfirmedInventory | null) {
+    setInventory(next)
+    setReadyIngredients(null)
+  }
 
   /**
    * Fetch guesses for a photo and move the screen to ready or failed. If the
@@ -43,7 +55,7 @@ function App() {
    */
   async function loadCandidates(photo: SelectedPhoto) {
     const generation = ++loadGeneration.current
-    setInventory(null)
+    changeInventory(null)
     setFailure(null)
     setRows([])
     setCandidateStatus('loading')
@@ -79,7 +91,7 @@ function App() {
 
     if (!photo) {
       loadGeneration.current += 1
-      setInventory(null)
+      changeInventory(null)
       setFailure(null)
       setRows([])
       setCandidateStatus('idle')
@@ -154,7 +166,7 @@ function App() {
           source={source}
           onRowsChange={setRows}
           inventory={inventory}
-          onInventoryChange={setInventory}
+          onInventoryChange={changeInventory}
         />
       ) : null}
 
@@ -162,6 +174,16 @@ function App() {
         <NormalizedInventory
           key={inventory.ingredients.map((item) => item.name).join('|')}
           inventory={inventory}
+          onReadyChange={setReadyIngredients}
+        />
+      ) : null}
+
+      {candidateStatus === 'ready' && inventory && readyIngredients ? (
+        <AllergyExclusions
+          key={readyIngredients.map((item) => item.name).join('|')}
+          ingredients={readyIngredients}
+          constraints={constraints}
+          onConstraintsChange={setConstraints}
         />
       ) : null}
     </main>

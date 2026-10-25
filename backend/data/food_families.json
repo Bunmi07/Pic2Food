@@ -1,0 +1,83 @@
+{
+  "pork": {
+    "names": ["pork", "pig"],
+    "terms": [
+      "pork", "bacon", "ham", "gammon", "prosciutto", "pancetta", "guanciale", "speck",
+      "chorizo", "salami", "pepperoni", "mortadella", "sausage", "bratwurst", "frankfurter",
+      "hot dog", "lard", "pork rind", "chicharron", "spare rib", "gelatin", "gelatine"
+    ],
+    "except": ["beef gelatin", "beef gelatine", "fish gelatin", "fish gelatine"],
+    "includes": []
+  },
+  "beef": {
+    "names": ["beef", "cow"],
+    "terms": [
+      "beef", "veal", "steak", "brisket", "sirloin", "ribeye", "rib eye", "short rib",
+      "oxtail", "pastrami", "bresaola", "burger", "suet", "tallow", "bone marrow"
+    ],
+    "except": [],
+    "includes": []
+  },
+  "lamb": {
+    "names": ["lamb", "mutton"],
+    "terms": ["lamb", "mutton", "hogget"],
+    "except": [],
+    "includes": []
+  },
+  "poultry": {
+    "names": ["poultry"],
+    "terms": ["poultry", "chicken", "turkey", "duck", "goose", "quail"],
+    "except": [],
+    "includes": []
+  },
+  "meat": {
+    "names": ["meat", "red meat"],
+    "terms": ["meat", "venison", "rabbit", "goat", "bison", "liver", "kidney", "mince"],
+    "except": ["kidney bean", "goat cheese", "goat's cheese"],
+    "includes": ["family:pork", "family:beef", "family:lamb", "family:poultry"]
+  },
+  "seafood": {
+    "names": ["seafood"],
+    "terms": ["seafood"],
+    "except": [],
+    "includes": ["allergen:fish", "allergen:shellfish"]
+  },
+  "dairy": {
+    "names": ["dairy"],
+    "terms": ["dairy", "lactose"],
+    "except": [],
+    "includes": ["allergen:milk"]
+  },
+  "nuts": {
+    "names": ["nut"],
+    "terms": [],
+    "except": [],
+    "includes": ["allergen:tree_nuts", "allergen:peanuts"]
+  },
+  "gluten": {
+    "names": ["gluten"],
+    "terms": ["gluten", "barley", "rye", "spelt", "malt", "malt vinegar", "beer"],
+    "except": [],
+    "includes": ["allergen:wheat"]
+  },
+  "alcohol": {
+    "names": ["alcohol"],
+    "terms": [
+      "alcohol", "wine", "beer", "ale", "lager", "stout", "cider", "rum", "vodka", "gin",
+      "tequila", "brandy", "cognac", "whisky", "whiskey", "bourbon", "sherry", "port",
+      "marsala", "vermouth", "sake", "mirin", "champagne", "prosecco", "liqueur", "kirsch",
+      "amaretto"
+    ],
+    "except": ["wine vinegar", "rice wine vinegar", "cider vinegar", "ginger ale", "root beer"],
+    "includes": []
+  },
+  "mushroom": {
+    "names": ["mushroom"],
+    "terms": [
+      "mushroom", "shiitake", "portobello", "portabella", "chanterelle", "porcini",
+      "enoki", "morel", "truffle"
+    ],
+    "except": [],
+    "includes": []
+  }
+}
