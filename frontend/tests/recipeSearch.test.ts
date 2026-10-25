@@ -10,6 +10,7 @@ import {
   parseRecipeSearchResponse,
   requestRecipeSearch,
   stapleLabel,
+  swapNote,
 } from '../src/recipeSearch.ts'
 
 function recipe(overrides: Record<string, unknown> = {}) {
@@ -164,6 +165,23 @@ test('shows how a vague staple was read, and rejects a blank reading', () => {
   const blank = [{ name: 'Pepper', measure: '', assumed_as: ' ' }]
   assert.equal(
     parseRecipeSearchResponse(200, answer({ recipes: [recipe({ staples: blank })] })).ok,
+    false,
+  )
+})
+
+test('flags a different sugar type the user has instead of calling it missing', () => {
+  const matched = [{ name: 'Caster Sugar', measure: '50g', you_have: 'sugar' }]
+  const result = parseRecipeSearchResponse(200, answer({ recipes: [recipe({ matched })] }))
+  assert.ok(result.ok)
+  const [item] = result.recipes[0].matched
+  assert.equal(
+    swapNote(item),
+    'Recipe calls for caster sugar; you have sugar. Check it works for you.',
+  )
+  assert.equal(swapNote({ name: 'Eggs', measure: '3' }), null)
+  const blank = [{ name: 'Caster Sugar', measure: '', you_have: '' }]
+  assert.equal(
+    parseRecipeSearchResponse(200, answer({ recipes: [recipe({ matched: blank })] })).ok,
     false,
   )
 })

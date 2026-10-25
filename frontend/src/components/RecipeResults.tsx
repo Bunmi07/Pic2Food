@@ -19,6 +19,7 @@ import {
   itemLabel,
   requestRecipeSearch,
   stapleLabel,
+  swapNote,
   type Recipe,
   type RecipeSearchResult,
 } from '../recipeSearch'
@@ -167,9 +168,15 @@ function RecipeCard({ recipe, near }: { recipe: Recipe; near: boolean }) {
 
         <h4>You have</h4>
         <ul>
-          {recipe.matched.map((item, index) => (
-            <li key={`${item.name}-${index}`}>{itemLabel(item)}</li>
-          ))}
+          {recipe.matched.map((item, index) => {
+            const note = swapNote(item)
+            return (
+              <li key={`${item.name}-${index}`}>
+                {itemLabel(item)}
+                {note ? <span className="swap-note">{note}</span> : null}
+              </li>
+            )
+          })}
         </ul>
 
         <h4>You’d need</h4>

@@ -13,8 +13,12 @@ import type { UserConstraints } from './constraints'
 export const RECIPE_SEARCH_TIMEOUT_MS = 30_000
 export const MAX_RECIPES = 3
 
-/** assumedAs: how we read a vague staple, e.g. "Pepper" read as black pepper. */
-export type RecipeItem = { name: string; measure: string; assumedAs?: string }
+/**
+ * assumedAs: how we read a vague staple, e.g. "Pepper" read as black pepper.
+ * youHave: the recipe wants a different type than the user has (caster sugar
+ * vs sugar); shown so the user can judge.
+ */
+export type RecipeItem = { name: string; measure: string; assumedAs?: string; youHave?: string }
 
 export type Recipe = {
   id: string
@@ -121,13 +125,16 @@ function parseItems(raw: unknown): RecipeItem[] | null {
     if (!isRecord(entry) || !isNonEmpty(entry.name) || typeof entry.measure !== 'string') {
       return null
     }
-    if (entry.assumed_as === undefined) {
-      items.push({ name: entry.name, measure: entry.measure })
-    } else if (isNonEmpty(entry.assumed_as)) {
-      items.push({ name: entry.name, measure: entry.measure, assumedAs: entry.assumed_as })
-    } else {
-      return null
+    const item: RecipeItem = { name: entry.name, measure: entry.measure }
+    for (const [field, key] of [
+      ['assumed_as', 'assumedAs'],
+      ['you_have', 'youHave'],
+    ] as const) {
+      if (entry[field] === undefined) continue
+      if (!isNonEmpty(entry[field])) return null
+      item[key] = entry[field]
     }
+    items.push(item)
   }
   return items
 }
@@ -165,6 +172,13 @@ export async function requestRecipeSearch(
 export function stapleLabel(item: RecipeItem): string {
   const name = item.name.toLowerCase()
   return item.assumedAs ? `${name} (we read this as ${item.assumedAs})` : name
+}
+
+/** Note for a matched item the user has a different type of, else null. */
+export function swapNote(item: RecipeItem): string | null {
+  return item.youHave
+    ? `Recipe calls for ${item.name.toLowerCase()}; you have ${item.youHave}. Check it works for you.`
+    : null
 }
 
 /** "2 eggs" style label, keeping the source's measure exactly as written. */

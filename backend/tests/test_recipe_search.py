@@ -248,6 +248,29 @@ class MatchingTests(unittest.TestCase):
         self.assertFalse(check_recipe(["Eggs", "Pepper"], constraints).allowed)
         self.assertTrue(check_recipe(["Eggs", "Red Pepper"], constraints).allowed)
 
+    def test_other_sugar_type_counts_as_had_but_is_flagged(self):
+        record = meal("2100", "Shortbread", [("Butter", "100g"), ("Caster Sugar", "50g")])
+        scored = score_recipe(parse_recipe(record), user_key_set(["butter", "sugar"]))
+        self.assertEqual(scored.missing, ())
+        result = scored_to_dict(scored)
+        self.assertIn(
+            {"name": "Caster Sugar", "measure": "50g", "you_have": "sugar"}, result["matched"]
+        )
+        self.assertIn({"name": "Butter", "measure": "100g"}, result["matched"])
+
+    def test_no_sugar_at_all_is_still_missing(self):
+        record = meal("2100", "Shortbread", [("Butter", "100g"), ("Caster Sugar", "50g")])
+        scored = score_recipe(parse_recipe(record), user_key_set(["butter"]))
+        self.assertEqual([i.name for i in scored.missing], ["Caster Sugar"])
+
+    def test_exact_match_ranks_above_a_swap(self):
+        exact = meal("2201", "A", [("Butter", "1"), ("Sugar", "1")])
+        swapped = meal("2200", "B", [("Butter", "1"), ("Icing Sugar", "1")])
+        keys = user_key_set(["butter", "sugar"])
+        scored = [score_recipe(parse_recipe(r), keys) for r in (swapped, exact)]
+        _, chosen = classify(scored, SETTINGS)
+        self.assertEqual([s.recipe.id for s in chosen], ["2201", "2200"])
+
     def test_staples_are_not_missing_or_matched(self):
         scored = score_recipe(parse_recipe(RECIPES["1002"]), user_key_set(["egg"]))
         self.assertEqual([i.name for i in scored.matched], ["Free-range Eggs, Beaten"])
@@ -296,6 +319,13 @@ class SourceNameReviewTests(unittest.TestCase):
         constraints = build_constraints(["wheat"], [])
         names = ["Vegetable Stock Cube", "Thai Red Curry Paste", "Baking Powder", "Oil"]
         self.assertEqual(check_recipe(names, constraints).unchecked, names)
+
+    def test_coconut_is_not_a_tree_nut(self):
+        constraints = build_constraints(["tree_nuts"], [])
+        names = ["Desiccated Coconut", "Coconut", "Shredded Coconut", "Coconut Oil"]
+        check = check_recipe(names, constraints)
+        self.assertTrue(check.allowed)
+        self.assertEqual(check.unchecked, [])
 
     def test_new_aliases_join_matching(self):
         self.assertIn("bell pepper", ingredient_keys("Red Pepper"))

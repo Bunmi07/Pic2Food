@@ -1,7 +1,10 @@
 """Deterministic matching and ranking: which recipes the user can actually make.
 
 For each recipe ingredient we decide one of three things:
-- matched: the user confirmed it ("Free-range Eggs, Beaten" matches "egg")
+- matched: the user confirmed it ("Free-range Eggs, Beaten" matches "egg").
+           A different type from a close group (the recipe wants caster
+           sugar, the user has sugar) also counts, with a note naming both
+           so the user can judge.
 - staple:  a pantry staple we assume (salt, black pepper, cooking oil, water);
            never counted as missing, never added to the user's inventory.
            A bare "Pepper" is read as black pepper, and the result says so.
@@ -37,6 +40,17 @@ PANTRY_STAPLE_KEYS = frozenset(
         "sunflower oil", "rapeseed oil", "canola oil", "high heat cooking oil",
         "water", "hot water", "warm water", "boiling water", "ice water", "tap water",
     ]
+)
+
+# Types the user can usually swap for each other. Matching across a group is
+# never silent: the result names what the recipe asks for and what they have.
+SWAP_GROUPS = (
+    frozenset(
+        [
+            "sugar", "caster sugar", "granulated sugar", "brown sugar", "muscovado sugar",
+            "demerara sugar", "icing sugar", "palm sugar",
+        ]
+    ),
 )
 
 SUPPORTED = "supported"
@@ -81,10 +95,12 @@ class ScoredRecipe:
     missing: Tuple[RecipeIngredient, ...]
     staples: Tuple[RecipeIngredient, ...]
     unchecked: Tuple[str, ...]
+    swaps: Tuple[Tuple[str, str], ...] = ()  # (recipe ingredient name, what the user has)
 
     @property
-    def sort_key(self) -> Tuple[int, int, int]:
-        return (len(self.missing), -len(self.matched), int(self.recipe.id))
+    def sort_key(self) -> Tuple[int, int, int, int]:
+        """Fewest missing first, then fewest swaps, then most matched."""
+        return (len(self.missing), len(self.swaps), -len(self.matched), int(self.recipe.id))
 
 
 def user_key_set(user_ingredients: Iterable[str]) -> FrozenSet[str]:
@@ -98,16 +114,33 @@ def score_recipe(
     recipe: RecipeRecord, user_keys: FrozenSet[str], unchecked: Iterable[str] = ()
 ) -> ScoredRecipe:
     """Split one (already constraint-checked) recipe into matched, staple, and missing."""
-    matched, missing, staples = [], [], []
+    matched, missing, staples, swaps = [], [], [], []
     for ingredient in recipe.ingredients:
         keys = ingredient_keys(ingredient.name)
         if keys & user_keys:
             matched.append(ingredient)
+            continue
+        user_has = swap_for(keys, user_keys)
+        if user_has:
+            matched.append(ingredient)
+            swaps.append((ingredient.name, user_has))
         elif is_pantry_staple(ingredient.name):
             staples.append(ingredient)
         else:
             missing.append(ingredient)
-    return ScoredRecipe(recipe, tuple(matched), tuple(missing), tuple(staples), tuple(unchecked))
+    return ScoredRecipe(
+        recipe, tuple(matched), tuple(missing), tuple(staples), tuple(unchecked), tuple(swaps)
+    )
+
+
+def swap_for(keys: FrozenSet[str], user_keys: FrozenSet[str]) -> str:
+    """What the user has from the same swap group, e.g. "sugar" for caster sugar; else ""."""
+    for group in SWAP_GROUPS:
+        if keys & group:
+            have = sorted(user_keys & group)
+            if have:
+                return " or ".join(have)
+    return ""
 
 
 def classify(scored: List[ScoredRecipe], settings: RecipeSettings) -> Tuple[str, List[ScoredRecipe]]:
@@ -139,8 +172,16 @@ def scored_to_dict(scored: ScoredRecipe) -> Dict[str, object]:
             entry["assumed_as"] = assumed
         staples.append(entry)
 
+    swaps = dict(scored.swaps)
+    matched = []
+    for item in scored.matched:
+        entry = {"name": item.name, "measure": item.measure}
+        if item.name in swaps:
+            entry["you_have"] = swaps[item.name]
+        matched.append(entry)
+
     return {
-        "matched": pairs(scored.matched),
+        "matched": matched,
         "missing": pairs(scored.missing),
         "staples": staples,
         "unchecked_allergy": list(scored.unchecked),
