@@ -1,9 +1,23 @@
+/*
+ * Global styles and the color palette. Every color in the app comes from
+ * these variables, so a light theme later only needs to redefine them.
+ * Contrast (WCAG AA) is checked against --card: text needs 4.5:1, control
+ * edges and icons 3:1. Re-check ratios whenever a value changes.
+ */
 :root {
   --bg: #1a1512;
   --card: #2a221d;
+  --field: #3a3029;
+  --raised: #4a3c34;
+  --divider: #3a3029;
+  --border: #857262;
   --ink: #f6efe8;
   --muted: #c4b6a8;
-  --accent: #e4572e;
+  --accent: #c4441d;
+  --on-accent: #ffffff;
+  --accent-text: #f2825b;
+  --warning-text: #f4a261;
+  --focus: #f2825b;
   --radius: 18px;
 }
 
@@ -25,4 +39,14 @@ body {
 
 #root {
   min-height: 100%;
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
