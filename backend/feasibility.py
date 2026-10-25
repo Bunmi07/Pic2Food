@@ -23,19 +23,11 @@ from functools import lru_cache
 from typing import Dict, FrozenSet, Iterable, List, Tuple
 
 from backend.config import RecipeSettings
-from backend.constraints import assumed_meaning, words
+from backend.constraints import DESCRIPTOR_WORDS, assumed_meaning, words
 from backend.normalization import normalize_term, singular_forms
 from backend.recipes import RecipeIngredient, RecipeRecord
 
 MAX_RESULTS = 3
-
-DESCRIPTOR_WORDS = frozenset(
-    """
-    chopped diced sliced minced grated shredded crushed beaten fresh large small
-    medium whole raw free range organic peeled cubed finely roughly thinly
-    softened melted chilled cold can tin jar of a an the
-    """.split()
-)
 
 PANTRY_STAPLE_KEYS = frozenset(
     [

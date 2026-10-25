@@ -279,7 +279,9 @@ Decided for these slices:
 - Every search checks TheMealDB's whole catalog (about 800 recipes), loaded into server memory on the first search and reloaded after `RECIPE_CATALOG_HOURS` (default 24). Nothing is written to disk.
 - Retrieval settings (TheMealDB address and key, timeout, catalog reload hours, and the match thresholds) are environment variables listed in `.env.example`.
 
-Open for product review: growing the alias and allergen files so common recipe ingredients (parsley, red pepper, baguette, ...) are recognized. Today an unrecognized ingredient only triggers the allergy warning, so gaps in the allergen lists (for example "baguette" missing from wheat) let a recipe through with a warning instead of removing it.
+- The alias file covers the most common TheMealDB ingredients (single, whole foods only). Blends and packaged products whose contents vary by brand (stock cubes, curry pastes, sauces, spice blends, baking powder, plain "oil" or "vinegar") are deliberately left out so they keep the allergy warning. Preparation words ("chopped", "fresh") are ignored when deciding whether an ingredient is recognized.
+
+Open for product review (draft added Oct 2026, needs sign-off): the alias additions and allergen and food-family additions from the TheMealDB catalog review, plus these calls: whether coconut counts as a tree nut (today unrecognized, so it warns); "red pepper" read as bell pepper; marshmallow treated as pork (gelatin); gochujang, doubanjiang, and chilli bean paste blocked for both wheat and soy; oats recognized (not wheat, though often cross-contaminated); sugar types kept distinct ("caster sugar" doesn't satisfy "sugar").
 
 Not yet started: grounded explanation. Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region) and a user-adjustable threshold.
 

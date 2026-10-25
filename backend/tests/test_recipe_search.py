@@ -255,6 +255,55 @@ class MatchingTests(unittest.TestCase):
         self.assertEqual([i.name for i in scored.missing], ["Butter", "Spring Onions"])
 
 
+class SourceNameReviewTests(unittest.TestCase):
+    """Real TheMealDB ingredient names that must be caught by allergies and foods to avoid."""
+
+    def test_allergen_names_from_the_catalog_are_blocked(self):
+        cases = {
+            "wheat": ["Baguette", "Ciabatta", "Pretzels", "English Muffins", "Wonton Skin",
+                      "Freekeh", "Gochujang", "Toast"],
+            "milk": ["Fromage Frais", "Manchego", "Queso Fresco", "Dulce de Leche", "Malai"],
+            "fish": ["Pilchards", "Hake", "Barramundi", "Codfish Bulljaw"],
+            "shellfish": ["Conchs"],
+            "tree_nuts": ["Chestnuts", "Hazlenuts", "Nougatine"],
+            "soy": ["Fermented Black Beans", "Chilli Bean Paste", "Doubanjiang"],
+        }
+        for allergen, names in cases.items():
+            constraints = build_constraints([allergen], [])
+            for name in names:
+                self.assertFalse(check_recipe([name], constraints).allowed, (allergen, name))
+
+    def test_family_names_from_the_catalog_are_blocked(self):
+        cases = {
+            "pork": ["Black Pudding", "Morcilla", "Kielbasa", "Polish Kabanos", "Jamón Ibérico",
+                     "Pigs Trotters", "Miniature Marshmallows"],
+            "beef": ["Chuck Roast"],
+            "alcohol": ["Grand Marnier"],
+            "gluten": ["Rice Krispies"],
+        }
+        for family, names in cases.items():
+            constraints = build_constraints([], [family])
+            for name in names:
+                self.assertFalse(check_recipe([name], constraints).allowed, (family, name))
+
+    def test_common_whole_foods_no_longer_warn(self):
+        constraints = build_constraints(["wheat"], [])
+        names = ["Parsley", "Chopped Parsley", "Freshly Chopped Parsley", "Red Pepper",
+                 "Bay Leaves", "Garlic Clove", "Basmati Rice", "Buckwheat", "Cold Water"]
+        self.assertEqual(check_recipe(names, constraints).unchecked, [])
+
+    def test_blends_and_packaged_products_still_warn(self):
+        constraints = build_constraints(["wheat"], [])
+        names = ["Vegetable Stock Cube", "Thai Red Curry Paste", "Baking Powder", "Oil"]
+        self.assertEqual(check_recipe(names, constraints).unchecked, names)
+
+    def test_new_aliases_join_matching(self):
+        self.assertIn("bell pepper", ingredient_keys("Red Pepper"))
+        self.assertIn("potato", ingredient_keys("New Potatoes"))
+        self.assertIn("rice", ingredient_keys("Basmati Rice"))
+        self.assertNotIn("sugar", ingredient_keys("Caster Sugar"))
+
+
 class ClassifyTests(unittest.TestCase):
     def scored(self, user, *meal_ids):
         keys = user_key_set(user)

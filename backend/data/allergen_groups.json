@@ -6,7 +6,8 @@
       "cheese", "cream cheese", "parmesan", "parmigiano", "mozzarella", "cheddar", "feta",
       "ricotta", "mascarpone", "gruyere", "halloumi", "paneer", "brie", "camembert",
       "gouda", "stilton", "pecorino", "emmental", "yogurt", "yoghurt", "kefir", "whey",
-      "casein", "custard", "ice cream", "chocolate", "nutella", "pesto"
+      "casein", "custard", "ice cream", "chocolate", "nutella", "pesto",
+      "fromage frais", "manchego", "queso", "quark", "malai", "dulce de leche", "toffee"
     ],
     "except": [
       "coconut milk", "coconut cream", "almond milk", "oat milk", "soy milk", "soya milk",
@@ -28,7 +29,8 @@
       "fish", "fish sauce", "salmon", "tuna", "cod", "haddock", "anchovy", "sardine",
       "mackerel", "trout", "tilapia", "halibut", "sea bass", "bass", "snapper", "pollock",
       "swordfish", "monkfish", "herring", "kipper", "worcestershire", "worcestershire sauce",
-      "caesar dressing", "dashi", "bonito"
+      "caesar dressing", "dashi", "bonito",
+      "pilchard", "hake", "barramundi", "codfish", "saltfish", "prahok"
     ],
     "except": []
   },
@@ -36,7 +38,8 @@
     "label": "Shellfish",
     "terms": [
       "shellfish", "shrimp", "prawn", "crab", "lobster", "crayfish", "langoustine",
-      "scallop", "mussel", "clam", "oyster", "oyster sauce", "squid", "calamari", "octopus"
+      "scallop", "mussel", "clam", "oyster", "oyster sauce", "squid", "calamari", "octopus",
+      "conch"
     ],
     "except": []
   },
@@ -44,7 +47,8 @@
     "label": "Tree nuts",
     "terms": [
       "nut", "almond", "walnut", "cashew", "pecan", "pistachio", "hazelnut", "macadamia",
-      "brazil nut", "pine nut", "marzipan", "praline", "nutella", "pesto", "frangipane"
+      "brazil nut", "pine nut", "marzipan", "praline", "nutella", "pesto", "frangipane",
+      "chestnut", "hazlenut", "nougat", "nougatine"
     ],
     "except": []
   },
@@ -61,7 +65,10 @@
       "farfalle", "rigatoni", "fusilli", "noodle", "udon", "ramen", "couscous", "bulgur",
       "semolina", "seitan", "pastry", "puff pastry", "filo", "phyllo", "dough", "tortilla",
       "pita", "naan", "bun", "roll", "bagel", "croissant", "brioche", "biscuit", "cracker",
-      "cake", "cookie", "pancake", "soy sauce", "hoisin", "teriyaki"
+      "cake", "cookie", "pancake", "soy sauce", "hoisin", "teriyaki",
+      "baguette", "ciabatta", "focaccia", "sourdough", "pretzel", "muffin", "toast",
+      "wonton", "freekeh", "farro", "durum", "vermicelli", "sevaiiya", "knafeh", "kataifi",
+      "gochujang", "doubanjiang", "chilli bean paste"
     ],
     "except": [
       "rice flour", "corn flour", "almond flour", "coconut flour", "chickpea flour",
@@ -73,7 +80,8 @@
     "label": "Soy",
     "terms": [
       "soy", "soya", "soybean", "soy sauce", "tofu", "bean curd", "tempeh", "edamame",
-      "miso", "tamari", "teriyaki", "hoisin"
+      "miso", "tamari", "teriyaki", "hoisin",
+      "fermented black bean", "gochujang", "doubanjiang", "chilli bean paste"
     ],
     "except": []
   },
