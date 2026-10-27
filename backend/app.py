@@ -12,6 +12,11 @@ clashes with them (recipe search stays blocked until there are none).
 
 POST /api/recipe-search takes the same request and returns up to three
 sourced TheMealDB recipes: a supported match, a near match, or no match.
+Each recipe carries a code-written "why this fits you" line.
+
+POST /api/recipe-explanations takes the same request plus the shown recipe
+IDs and returns that line reworded by the model where it passes our checks
+(explanations.py), or the code-written line otherwise.
 
 This file only runs the requests step by step. The work itself lives in
 separate modules: image_validation.py (is the photo acceptable),
@@ -29,12 +34,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from backend.candidates import VisionOutputError, parse_vision_output
-from backend.config import load_recipe_settings, load_vision_settings
+from backend.config import load_explanation_settings, load_recipe_settings, load_vision_settings
 from backend.constraints import build_constraints, find_inventory_conflicts
+from backend.explanation_client import request_explanations
+from backend.explanations import explain
 from backend.image_validation import MAX_UPLOAD_BYTES, validate_jpeg_upload
 from backend.mealdb_client import MealDbClient, RecipeSourceError, RecipeSourceTimeout
 from backend.normalization import normalize_term
-from backend.recipe_search import search_recipes
+from backend.recipe_search import UnknownRecipeIds, score_recipes_by_id, search_recipes
 from backend.vision_client import (
     VisionCallError,
     VisionTimeoutError,
@@ -53,10 +60,12 @@ if not logger.handlers:
 app = FastAPI(title="Pic2Food")
 
 VisionCaller = Callable[[bytes], str]
+ExplanationCaller = Callable[[str], str]
 
 MAX_NORMALIZE_ITEMS = 50
 MAX_INGREDIENT_NAME_LENGTH = 60
 MAX_AVOID_ITEMS = 20
+MAX_EXPLAINED_RECIPES = 3
 
 
 def get_vision_caller() -> Optional[VisionCaller]:
@@ -235,3 +244,68 @@ def recipe_search(
         return error_response(504, "recipe_source_timeout", "recipe_search")
     except RecipeSourceError:
         return error_response(502, "recipe_source_failed", "recipe_search")
+
+
+def get_explanation_caller() -> Optional[ExplanationCaller]:
+    """A function that asks the model to reword lines, or None with no API key.
+
+    Tests replace this so they never make paid model calls.
+    """
+    settings = load_explanation_settings()
+    if not settings.api_key:
+        return None
+    return lambda facts_json: request_explanations(facts_json, settings)
+
+
+class ExplanationRequest(ConstraintsRequest):
+    recipe_ids: List[str]
+
+
+@app.post("/api/recipe-explanations")
+def recipe_explanations(
+    request: ExplanationRequest,
+    client: MealDbClient = Depends(get_recipe_client),
+    call_model: Optional[ExplanationCaller] = Depends(get_explanation_caller),
+):
+    """Shown recipe IDs in, one "why this fits you" line per recipe out.
+
+    Possible answers:
+    - 200 {"explanations": [{"id", "text", "worded_by": "ai" | "template"}]}
+    - 400 invalid_explanation_request        bad request, unknown or blocked recipe ID
+    - 409 constraint_conflict                a confirmed ingredient clashes
+    - 502 / 504 recipe_source_*              TheMealDB failed
+    A model failure or a rejected line is not an error: that recipe gets the
+    code-written line. Lines and allergy choices are never logged.
+    """
+    ids = request.recipe_ids
+    if (
+        not request.ingredients
+        or not valid_names(request.ingredients, MAX_NORMALIZE_ITEMS)
+        or not valid_names(request.avoid, MAX_AVOID_ITEMS)
+        or not 1 <= len(ids) <= MAX_EXPLAINED_RECIPES
+        or len(set(ids)) != len(ids)
+        or not all(recipe_id.isdigit() for recipe_id in ids)
+    ):
+        return error_response(400, "invalid_explanation_request", "recipe_explanations")
+    try:
+        constraints = build_constraints(request.allergens, request.avoid)
+    except ValueError:
+        return error_response(400, "invalid_explanation_request", "recipe_explanations")
+    if find_inventory_conflicts(request.ingredients, constraints):
+        return error_response(409, "constraint_conflict", "recipe_explanations")
+
+    try:
+        scored, catalog = score_recipes_by_id(ids, request.ingredients, constraints, client)
+    except UnknownRecipeIds:
+        return error_response(400, "invalid_explanation_request", "recipe_explanations")
+    except RecipeSourceTimeout:
+        return error_response(504, "recipe_source_timeout", "recipe_explanations")
+    except RecipeSourceError:
+        return error_response(502, "recipe_source_failed", "recipe_explanations")
+
+    results, outcomes = explain(scored, constraints, catalog.food_words, call_model)
+    logger.info(
+        "recipe_explanations %s",
+        " ".join("{}={}".format(key, count) for key, count in sorted(outcomes.items())),
+    )
+    return {"explanations": results}

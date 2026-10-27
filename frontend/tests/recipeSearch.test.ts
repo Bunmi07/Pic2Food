@@ -34,6 +34,7 @@ function recipe(overrides: Record<string, unknown> = {}) {
     missing: [{ name: 'Butter', measure: '1 tbsp' }],
     staples: [{ name: 'Salt', measure: '' }],
     unchecked_allergy: [],
+    explanation: 'Uses your eggs. You’d need butter.',
     ...overrides,
   }
 }
@@ -90,6 +91,8 @@ test('rejects answers that break the result contract', () => {
     answer({ recipes: [recipe({ unchecked_allergy: [3] })] }),
     answer({ recipes: [recipe({ image_url: 'https://tracker.example.com/x.jpg' })] }),
     answer({ recipes: [recipe({ mealdb_url: 'https://example.com/meal/1002' })] }),
+    answer({ recipes: [recipe({ explanation: '' })] }),
+    answer({ recipes: [recipe({ explanation: 'x'.repeat(501) })] }),
   ]
   for (const body of broken) {
     assert.equal(parseRecipeSearchResponse(200, body).ok, false, JSON.stringify(body))

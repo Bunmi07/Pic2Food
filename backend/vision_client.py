@@ -1,4 +1,4 @@
-"""The only file that talks to OpenAI.
+"""Calls OpenAI's vision model (explanation_client.py is the only other OpenAI caller).
 
 Takes one prepared JPEG, sends it to the vision model together with the
 prompt and output schema from vision_prompt.py, and returns the model's raw
