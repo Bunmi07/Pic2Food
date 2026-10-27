@@ -7,6 +7,8 @@
   max-width: 42rem;
   margin: 0 auto;
   padding: 1.25rem 1.1rem 3rem;
+  /* Don't let the browser reinsert a card just to keep the scroll position. */
+  overflow-anchor: none;
 }
 
 .top h1 {

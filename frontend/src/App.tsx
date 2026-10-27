@@ -4,8 +4,8 @@
  *
  * Owns the flow between those steps. When a photo is ready it asks for
  * ingredient guesses, logs which ones were shown, and hands them to
- * IngredientConfirmation. Once the user confirms, NormalizedInventory turns
- * the confirmed names into standard names for recipe search, and then
+ * IngredientConfirmation. Once the user confirms, App asks once for the
+ * standard names and NormalizedInventory shows that answer. Then
  * AllergyExclusions collects allergies and foods to avoid. App keeps those
  * choices so they survive edits to the ingredient list. Only after the
  * allergy check is clear does RecipeResults search; any upstream change
@@ -15,7 +15,7 @@ import { useCallback, useRef, useState } from 'react'
 import './App.css'
 import { AllergyExclusions } from './components/AllergyExclusions'
 import { IngredientConfirmation } from './components/IngredientConfirmation'
-import { NormalizedInventory } from './components/NormalizedInventory'
+import { NormalizedInventory, type NameMatch } from './components/NormalizedInventory'
 import { PhotoCapture, type SelectedPhoto } from './components/PhotoCapture'
 import { RecipeResults } from './components/RecipeResults'
 import {
@@ -30,12 +30,17 @@ import {
   type CandidateLoadResult,
   type CandidateSource,
 } from './loadIngredientCandidates'
-import type { ReadyIngredient } from './normalizeInventory'
+import {
+  buildReadyInventory,
+  requestNormalization,
+  type ReadyIngredient,
+} from './normalizeInventory'
 
 type FailedLoad = Extract<CandidateLoadResult, { ok: false }>
 
 function App() {
   const loadGeneration = useRef(0)
+  const matchGeneration = useRef(0)
   const photoRef = useRef<SelectedPhoto | null>(null)
   const [candidateStatus, setCandidateStatus] = useState<
     'idle' | 'loading' | 'ready' | 'failed'
@@ -44,14 +49,53 @@ function App() {
   const [source, setSource] = useState<CandidateSource>('vision')
   const [rows, setRows] = useState<CandidateRow[]>([])
   const [inventory, setInventory] = useState<ConfirmedInventory | null>(null)
+  const [match, setMatch] = useState<NameMatch | null>(null)
   const [readyIngredients, setReadyIngredients] = useState<ReadyIngredient[] | null>(null)
   const [constraints, setConstraints] = useState<UserConstraints>(NO_CONSTRAINTS)
   const [constraintsCleared, setConstraintsCleared] = useState(false)
+
+  /**
+   * One name-match request per confirm. Called from the confirm button, not
+   * from a card that redraws, so the request cannot start itself again.
+   */
+  function matchNames(next: ConfirmedInventory) {
+    const generation = ++matchGeneration.current
+    setMatch({ status: 'loading' })
+    const names = next.ingredients.map((item) => item.name)
+    void requestNormalization(names).then((result) => {
+      if (generation !== matchGeneration.current) {
+        return
+      }
+      if (result.ok) {
+        setMatch({ status: 'loaded', results: result.results })
+        const built = buildReadyInventory(result.results, {})
+        setReadyIngredients(built.ready ? built.ingredients : null)
+      } else {
+        setMatch({ status: 'failed', message: result.message })
+        setReadyIngredients(null)
+      }
+    })
+  }
 
   function changeInventory(next: ConfirmedInventory | null) {
     setInventory(next)
     setReadyIngredients(null)
     setConstraintsCleared(false)
+    if (!next) {
+      matchGeneration.current += 1
+      setMatch(null)
+      return
+    }
+    matchNames(next)
+  }
+
+  function retryMatch() {
+    if (!inventory) {
+      return
+    }
+    setReadyIngredients(null)
+    setConstraintsCleared(false)
+    matchNames(inventory)
   }
 
   const changeReadyIngredients = useCallback((next: ReadyIngredient[] | null) => {
@@ -180,11 +224,12 @@ function App() {
         />
       ) : null}
 
-      {candidateStatus === 'ready' && inventory ? (
+      {candidateStatus === 'ready' && inventory && match ? (
         <NormalizedInventory
           key={inventory.ingredients.map((item) => item.name).join('|')}
-          inventory={inventory}
+          match={match}
           onReadyChange={changeReadyIngredients}
+          onRetry={retryMatch}
         />
       ) : null}
 
