@@ -264,6 +264,7 @@ Done (merged or on review branches):
 - Recipe retrieval from TheMealDB (`backend/mealdb_client.py`, `backend/recipe_search.py`), with source name and link on every recipe and malformed records skipped
 - Deterministic feasibility and ranking (`backend/feasibility.py`): supported match, near match, or abstention, with matched, missing, and assumed-staple ingredients shown (`frontend/src/components/RecipeResults.tsx`)
 - Grounded explanation (`backend/explanations.py`, `POST /api/recipe-explanations`): every recipe card has a "Why this fits you" line built by code from the recipe and the user's ingredients. For the top three, an OpenAI model may reword that line. It sees only the recipe title, ingredients the user has, ingredients they'd need, and sugar swaps. Code adds "Recipes listing X were left out." Each model line is checked by code (length, no numbers or links, no words like "safe" or "healthy", no food that isn't in the recipe facts) and falls back to the code-built line if it fails, times out, or there's no API key. Model-worded lines are labelled "Worded by AI from this recipe and your ingredients." Settings: `EXPLANATION_MODEL`, `EXPLANATION_TIMEOUT_SECONDS`.
+- Deterministic evaluation set (`backend/evaluation.py`, `backend/data/evaluation_scenarios.json`, `backend/data/evaluation_catalog.json`): 14 labeled kitchens scored through the same search the app uses, against a frozen catalog. Checks are result state, recipe ids, hard constraints, source name and link, and the code-built explanation. A confirmed ingredient that clashes with an allergy or food to avoid is scored as a refused search. No photo and no model call.
 
 This is a local prototype: it runs on the developer's machine only and is not hosted.
 
@@ -288,7 +289,7 @@ Decided Oct 2026: coconut is not a tree nut (recognized, never blocked by the tr
 
 Decided Oct 2026 (grounded explanation): the model only rewords facts code already worked out. Allergies and foods to avoid are never sent to the model. The code-built line is always the fallback, and model-worded lines carry an AI label.
 
-Open: the model-worded lines have not yet been checked live (no API key was set during the build); check the share of lines that fall back once a key is in `.env`.
+Open: the model-worded lines have not yet been checked live (no API key was set during the build); check the share of lines that fall back once a key is in `.env`. The evaluation set is not the full 30 scenarios from the PRD: photo checks (precision, recall, non-food, unreadable) are not scored yet.
 
 Possible later work, not MVP: regional ingredient names (suggesting the likely meaning based on the user's region), a user-adjustable threshold, and remembering allergies on the user's device.
 

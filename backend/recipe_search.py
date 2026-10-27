@@ -94,11 +94,23 @@ def load_catalog(client: MealDbClient) -> RecipeCatalog:
             if raw is not None:
                 raw_by_id[meal_id] = raw
 
+    ordered = [raw_by_id[meal_id] for meal_id in sorted(raw_by_id, key=lambda value: (not value.isdigit(), value))]
+    catalog = catalog_from_raw(ordered)
+    logger.info("recipe_catalog loaded recipes=%d malformed=%d", len(catalog.recipes), catalog.malformed)
+    return catalog
+
+
+def catalog_from_raw(raw_meals: List[Dict[str, object]]) -> RecipeCatalog:
+    """Validate raw TheMealDB records into a catalog. Skips malformed ones.
+
+    Raises RecipeSourceError when nothing usable remains, so a bad load never
+    looks like an empty kitchen.
+    """
     recipes: List[RecipeRecord] = []
     malformed = 0
-    for meal_id in sorted(raw_by_id, key=lambda value: (not value.isdigit(), value)):
+    for raw in raw_meals:
         try:
-            recipes.append(parse_recipe(raw_by_id[meal_id]))
+            recipes.append(parse_recipe(raw))
         except RecipeRecordError:
             malformed += 1
     if not recipes:
@@ -106,13 +118,13 @@ def load_catalog(client: MealDbClient) -> RecipeCatalog:
             raise RecipeSourceMalformed("all {} records were malformed".format(malformed))
         raise RecipeSourceError("empty catalog")
 
+    recipes.sort(key=lambda recipe: (not recipe.id.isdigit(), int(recipe.id) if recipe.id.isdigit() else recipe.id))
     keys = frozenset(
         key for recipe in recipes for name in ingredient_names(recipe) for key in ingredient_keys(name)
     )
     food_words = frozenset(
         word for recipe in recipes for name in ingredient_names(recipe) for word in words(name)
     )
-    logger.info("recipe_catalog loaded recipes=%d malformed=%d", len(recipes), malformed)
     return RecipeCatalog(tuple(recipes), keys, food_words, malformed, time.monotonic())
 
 
@@ -136,7 +148,16 @@ def search_recipes(
     settings: RecipeSettings,
 ) -> Dict[str, object]:
     """Run the full search. Raises RecipeSourceError (or a subclass) if TheMealDB fails."""
-    catalog = get_catalog(client)
+    return search_catalog(ingredients, constraints, get_catalog(client), settings)
+
+
+def search_catalog(
+    ingredients: List[str],
+    constraints: Constraints,
+    catalog: RecipeCatalog,
+    settings: RecipeSettings,
+) -> Dict[str, object]:
+    """Search one already-loaded catalog. The live path and the evaluation set both use this."""
     not_found = [name for name in ingredients if not ingredient_keys(name) & catalog.ingredient_keys]
 
     user_keys = user_key_set(ingredients)
