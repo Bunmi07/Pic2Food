@@ -1,0 +1,105 @@
+{
+  "about": "Answer key for the recipe-rules test (backend/tests/test_evaluation.py). The app never reads this file, and the test never calls TheMealDB. It checks the rules after someone has confirmed what they have. ingredients is that list. allergies and avoid are what they marked. expected_status is the result this row must produce: supported, near_match, no_match, or constraint_conflict (the search is refused because a confirmed ingredient clashes). expected_ids are dummy recipes from evaluation_catalog.json that must be shown, in that order. An empty list means the search ran and must show nothing. Those recipes stay fixed, so a failure means the code broke a rule, such as hiding coconut from a tree-nut allergy or counting a bare Pepper as missing.",
+  "scenarios": [
+  {
+    "id": "supported-breakfast",
+    "ingredients": ["egg", "bread", "milk", "butter"],
+    "expected_status": "supported",
+    "expected_ids": ["2001", "2011", "2002"],
+    "sources": {"2001": "https://example.com/recipes/french-toast"}
+  },
+  {
+    "id": "sugar-swap-counts-as-have",
+    "ingredients": ["butter", "flour", "sugar"],
+    "expected_status": "supported",
+    "expected_ids": ["2006", "2002", "2009"],
+    "sources": {"2006": "https://example.com/recipes/shortbread"}
+  },
+  {
+    "id": "bread-near-match",
+    "ingredients": ["bread"],
+    "expected_status": "near_match",
+    "expected_ids": ["2005"],
+    "sources": {"2005": "https://www.themealdb.com/meal/2005"}
+  },
+  {
+    "id": "pork-removes-only-near-match",
+    "ingredients": ["bread"],
+    "avoid": ["pork"],
+    "expected_status": "no_match",
+    "expected_ids": [],
+    "forbidden_ids": ["2005"]
+  },
+  {
+    "id": "peanut-allergy-hides-recipe",
+    "ingredients": ["egg", "spring onion", "garlic"],
+    "allergies": ["peanuts"],
+    "expected_status": "supported",
+    "expected_ids": ["2002", "2009", "2010"],
+    "forbidden_ids": ["2003"]
+  },
+  {
+    "id": "coconut-not-a-tree-nut",
+    "ingredients": ["egg", "coconut", "flour", "milk"],
+    "allergies": ["tree_nuts"],
+    "expected_status": "supported",
+    "expected_ids": ["2008", "2011", "2002"]
+  },
+  {
+    "id": "wheat-blocks-baguette",
+    "ingredients": ["tomato", "garlic"],
+    "allergies": ["wheat"],
+    "expected_status": "near_match",
+    "expected_ids": ["2012"],
+    "forbidden_ids": ["2010", "2003"]
+  },
+  {
+    "id": "pepper-read-as-black-pepper",
+    "ingredients": ["chicken"],
+    "expected_status": "supported",
+    "expected_ids": ["2007"],
+    "assumed_as": "black pepper"
+  },
+  {
+    "id": "unrecognized-ingredient-warned",
+    "ingredients": ["bread", "ham", "butter"],
+    "allergies": ["fish"],
+    "expected_status": "supported",
+    "expected_ids": ["2005", "2002", "2006"],
+    "unchecked": ["Mystery Relish"]
+  },
+  {
+    "id": "unknown-term-does-not-block-search",
+    "ingredients": ["egg", "courgette"],
+    "expected_status": "supported",
+    "expected_ids": ["2002", "2009"],
+    "not_found": ["courgette"]
+  },
+  {
+    "id": "parsley-no-match",
+    "ingredients": ["parsley"],
+    "expected_status": "no_match",
+    "expected_ids": []
+  },
+  {
+    "id": "pork-blocks-marshmallow",
+    "ingredients": ["egg", "butter"],
+    "avoid": ["pork"],
+    "expected_status": "supported",
+    "expected_ids": ["2002", "2011", "2006"],
+    "forbidden_ids": ["2009", "2005"]
+  },
+  {
+    "id": "confirmed-ham-conflicts-with-pork",
+    "ingredients": ["ham"],
+    "avoid": ["pork"],
+    "expected_status": "constraint_conflict"
+  },
+  {
+    "id": "confirmed-egg-conflicts-with-egg-allergy",
+    "ingredients": ["egg"],
+    "allergies": ["egg"],
+    "expected_status": "constraint_conflict"
+  }
+  ]
+}
