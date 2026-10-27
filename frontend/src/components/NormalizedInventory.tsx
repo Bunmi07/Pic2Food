@@ -1,99 +1,63 @@
 /**
  * The "Ready for recipe search" card shown after the user confirms.
  *
- * Fetches a standard name for each confirmed ingredient and shows what each
- * one became. Asks the user to pick a meaning for ambiguous names, and flags
- * names we don't recognize (they're kept as typed). Only when every choice
+ * App has already asked once for a standard name for each confirmed
+ * ingredient. This card shows that answer. It asks the user to pick a
+ * meaning for ambiguous names, and flags names we don't recognize (they're
+ * kept as typed). It does not ask the server again. Only when every choice
  * is made does it show the final list and hand it to App (onReadyChange).
  */
-import { useEffect, useRef, useState } from 'react'
-import type { ConfirmedInventory } from '../confirmedInventory'
+import { useState } from 'react'
 import {
   buildReadyInventory,
-  requestNormalization,
   type NormalizationResult,
   type ReadyIngredient,
 } from '../normalizeInventory'
 
-type NormalizedInventoryProps = {
-  inventory: ConfirmedInventory
-  /** Called with the final list once every ambiguous name has a choice, else null. */
-  onReadyChange: (ingredients: ReadyIngredient[] | null) => void
-}
-
-function readyOrNull(results: NormalizationResult[], choices: Record<number, string>) {
-  const built = buildReadyInventory(results, choices)
-  return built.ready ? built.ingredients : null
-}
-
-type LoadState =
+export type NameMatch =
   | { status: 'loading' }
   | { status: 'failed'; message: string }
   | { status: 'loaded'; results: NormalizationResult[] }
 
-export function NormalizedInventory({ inventory, onReadyChange }: NormalizedInventoryProps) {
-  const cardRef = useRef<HTMLElement>(null)
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<LoadState>({ status: 'loading' })
+type NormalizedInventoryProps = {
+  match: NameMatch
+  /** Called with the final list once every ambiguous name has a choice, else null. */
+  onReadyChange: (ingredients: ReadyIngredient[] | null) => void
+  onRetry: () => void
+}
+
+export function NormalizedInventory({ match, onReadyChange, onRetry }: NormalizedInventoryProps) {
   const [choices, setChoices] = useState<Record<number, string>>({})
-
-  useEffect(() => {
-    let cancelled = false
-    const names = inventory.ingredients.map((item) => item.name)
-    requestNormalization(names).then((result) => {
-      if (cancelled) {
-        return
-      }
-      if (result.ok) {
-        setChoices({})
-        setState({ status: 'loaded', results: result.results })
-        onReadyChange(readyOrNull(result.results, {}))
-      } else {
-        setState({ status: 'failed', message: result.message })
-        onReadyChange(null)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [inventory, attempt, onReadyChange])
-
-  useEffect(() => {
-    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [])
-
-  function retry() {
-    setState({ status: 'loading' })
-    setAttempt((value) => value + 1)
-  }
 
   function choose(next: Record<number, string>) {
     setChoices(next)
-    if (state.status === 'loaded') {
-      onReadyChange(readyOrNull(state.results, next))
+    if (match.status === 'loaded') {
+      const built = buildReadyInventory(match.results, next)
+      onReadyChange(built.ready ? built.ingredients : null)
     }
   }
 
   return (
-    <section ref={cardRef} className="card" aria-labelledby="ready-heading" aria-live="polite">
+    <section className="card" aria-labelledby="ready-heading">
       <h2 id="ready-heading">Ready for recipe search</h2>
+      <div aria-live="polite">
+        {match.status === 'loading' ? <p>Matching ingredient names…</p> : null}
 
-      {state.status === 'loading' ? <p>Matching ingredient names…</p> : null}
+        {match.status === 'failed' ? (
+          <>
+            <p className="photo-error" role="alert">
+              {match.message}
+            </p>
+            <button type="button" className="primary-action" onClick={onRetry}>
+              Try again
+            </button>
+          </>
+        ) : null}
 
-      {state.status === 'failed' ? (
-        <>
-          <p className="photo-error" role="alert">
-            {state.message}
-          </p>
-          <button type="button" className="primary-action" onClick={retry}>
-            Try again
-          </button>
-        </>
-      ) : null}
-
-      {state.status === 'loaded' ? (
-        <LoadedList results={state.results} choices={choices} onChoose={choose} />
-      ) : null}
+        {match.status === 'loaded' ? (
+          <LoadedList results={match.results} choices={choices} onChoose={choose} />
+        ) : null}
+      </div>
     </section>
   )
 }
