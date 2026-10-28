@@ -60,7 +60,8 @@ The MVP succeeds when it helps a user move from an undecided state to selecting 
    - Maximum cooking time
    - Dietary preference
    - Allergies or excluded ingredients
-   - Pantry staples available
+
+   Four pantry staples are assumed, not chosen by the user: salt, black pepper, cooking oil (including olive oil), and water. They are never counted as missing. The recipe card names them. Sugar is not one of these staples.
 5. The system searches an approved recipe source.
 6. It returns up to three recipes ranked by feasibility.
 7. Each result displays:
@@ -108,7 +109,7 @@ Retrieval produces one of three outcomes rather than a binary match / no-match.
 
 - **Near match:** No recipe meets the threshold, but one or more fall short by a small, defined margin (a small number of missing ingredients). These are displayed as near matches, clearly labelled as requiring items the user does not have, ranked by ascending missing-ingredient burden. This is a result, not a failure message. The ranking logic already computes missing ingredients for every candidate; near match changes only the display cutoff, not the underlying calculation.
 
-- **No supported match:** No recipe meets either threshold. The system abstains, states plainly that it could not find a sufficiently supported match, and offers a next step: add pantry staples not shown, supply another photo, or relax dietary or time constraints.
+- **No supported match:** No recipe meets either threshold. The system abstains, states plainly that it could not find a sufficiently supported match, and offers a next step: add ingredients that were not in the photo, take another photo, or remove a food to avoid.
 
 The feasibility threshold and the near-match margin are configurable values, not fixed constants. Abstention rate is measured across threshold settings against the controlled evaluation set to identify the point at which loosening the threshold buys meaningful coverage without producing unrealistic recommendations.
 
@@ -124,17 +125,13 @@ Before capture, the product sets two expectations that materially affect result 
 
 - **Photo guidance:** Results depend on image clarity. The interface displays brief guidance before the camera opens: use good lighting, spread ingredients out where possible, and avoid photographing items through closed packaging or behind other objects. This guidance shifts the input distribution toward cases the system handles well. It does not eliminate poor input, which is why low-light, cluttered, and partially-hidden scenarios remain explicit evaluation slices.
 
-- **Pantry staples:** The interface presents a short list of commonly available pantry staples, but the user must explicitly confirm the pantry list before retrieval. Pantry items are not inferred from the image or silently added to inventory.
+- **Pantry staples:** Salt, black pepper, cooking oil (including olive oil), and water are assumed present and are never counted as missing. The recipe card says so. They are not inferred from the photo, and the user does not confirm a pantry list. Sugar is not assumed. If the user confirmed some sugar and the recipe asks for a different type, that type counts as something they have, with a note naming both. With no sugar confirmed, it is still missing.
 
-Salt, pepper, cooking oil, and sugar may be presented as suggested staples. Butter, flour, eggs, dairy products, nuts, and other ingredients with meaningful allergen, dietary, or recipe-feasibility implications must not be assumed automatically.
+A recipe line written only as "Pepper" or "Ground Pepper" is read as black pepper, so it counts as the staple, and the card says it was read that way. Named peppers (red, bell, cayenne, and others) are not assumed. Allergy and food-to-avoid checks test both the written name and black pepper.
 
-Allergy and exclusion constraints apply to pantry staples as well as photographed ingredients.
+Butter, flour, eggs, dairy products, nuts, and anything else with an allergen or a real effect on whether the recipe can be made are never assumed. They are missing unless the user confirmed them.
 
-### Pantry confirmation default
-
-Detected ingredients render unchecked and require individual confirmation. Suggested pantry staples may be displayed as a separate editable list, but the user must confirm that list before retrieval. Inaction must not become consent for either detected ingredients or pantry availability.
-
-Image-confirmed ingredients and user-confirmed pantry staples must remain distinguishable in the data model and evaluation events.
+An assumed staple is still blocked when it clashes with an allergy or a food to avoid. A rank cannot override that.
 
 ### User confirmation and event logging
 - All detected ingredients render unchecked. The user must actively confirm each item. Nothing proceeds to retrieval until confirmation is complete. Rationale: this is food a person will ingest, so inaction must never become consent.
@@ -222,7 +219,7 @@ Use **USDA FoodKeeper data** for storage guidance in a future safety-information
     No fuzzy matching — a wrong guess passes through as fact with no visible signal.
     **Caveat to record:** a search miss does not prove the ingredient is unknown, only that the current vocabulary did not cover it (e.g. "courgette" vs. a source's "zucchini"). This is exactly why unknown terms are logged.
     **Safety rule (applies regardless):** an unmatched, unverifiable term can never unlock a recipe that allergy or exclusion filtering would otherwise remove.  
-7. Apply explicit constraints such as allergies, exclusions, time, and pantry staples.
+7. Apply explicit constraints such as allergies and exclusions, and do not count the four assumed staples (salt, black pepper, cooking oil, water) as missing.
 8. Retrieve recipe candidates from the approved source.
 9. Calculate deterministic feasibility features:
    - Required ingredient coverage
@@ -363,7 +360,7 @@ Start with **30 scenarios**, not hundreds. Each scenario should contain:
 - One or more test images
 - Human-labeled visible ingredients
 - Confirmed ingredient list
-- Pantry-staple assumptions
+- Pantry-staple assumptions (salt, black pepper, cooking oil, and water are assumed; sugar is not)
 - User constraints
 - Expected result state: supported match, near match, or no supported match
 - One or more acceptable recipe IDs for supported-match and near-match scenarios
