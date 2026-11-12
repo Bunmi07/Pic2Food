@@ -203,7 +203,7 @@ function App() {
                 ? 'Couldn’t identify anything'
                 : 'Something went wrong'}
           </h2>
-          <p className="photo-error" role="alert">
+          <p className="photo-error photo-problem" role="alert">
             {failure.message}
           </p>
           {failure.canRetry ? (

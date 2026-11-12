@@ -19,8 +19,10 @@ export class ImagePrepareError extends Error {
 /**
  * Re-encodes the image through canvas so EXIF and other embedded metadata
  * are not carried forward. Also downscales so the longest edge is at most
- * MAX_IMAGE_EDGE_PX. The prepared File is what the app should keep in memory
- * for preview and any later upload — never the original camera file.
+ * MAX_IMAGE_EDGE_PX. Some browsers (iPhone Safari) still write an Exif APP1
+ * segment into that new JPEG; stripExifApp1 removes it. The prepared File is
+ * what the app should keep in memory for preview and any later upload — never
+ * the original camera file.
  */
 export async function prepareImageFile(file: File): Promise<File> {
   let bitmap: ImageBitmap
@@ -60,14 +62,15 @@ export async function prepareImageFile(file: File): Promise<File> {
     context.drawImage(bitmap, 0, 0, width, height)
 
     const blob = await canvasToJpegBlob(canvas)
-    if (await jpegContainsExifApp1(blob)) {
+    const stripped = stripExifApp1(new Uint8Array(await blob.arrayBuffer()))
+    if (await jpegContainsExifApp1(new Blob([stripped], { type: 'image/jpeg' }))) {
       throw new ImagePrepareError(
-        'Could not strip photo metadata. Try another image.',
+        'This photo could not be prepared. Try another photo of your ingredients.',
       )
     }
 
     const baseName = stripExtension(file.name) || 'ingredient-photo'
-    return new File([blob], `${baseName}.jpg`, {
+    return new File([stripped], `${baseName}.jpg`, {
       type: 'image/jpeg',
       lastModified: Date.now(),
     })
@@ -113,6 +116,78 @@ function canvasToJpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   })
 }
 
+/**
+ * Remove APP1 Exif segments from a JPEG. The scan (the picture bytes after
+ * the SOS marker) is copied through unchanged. A buffer that is not a JPEG
+ * is returned as-is.
+ */
+export function stripExifApp1(bytes: Uint8Array): Uint8Array {
+  if (bytes.length < 2 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return bytes
+  }
+
+  const chunks: Uint8Array[] = [bytes.subarray(0, 2)]
+  let offset = 2
+
+  while (offset + 4 <= bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      chunks.push(bytes.subarray(offset))
+      return concatChunks(chunks)
+    }
+
+    const marker = bytes[offset + 1]
+    // SOS begins the scan. Copy it and everything after it, including EOI.
+    if (marker === 0xda || marker === 0xd9) {
+      chunks.push(bytes.subarray(offset))
+      return concatChunks(chunks)
+    }
+
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      chunks.push(bytes.subarray(offset, offset + 2))
+      offset += 2
+      continue
+    }
+
+    const segmentLength = (bytes[offset + 2] << 8) | bytes[offset + 3]
+    if (segmentLength < 2 || offset + 2 + segmentLength > bytes.length) {
+      chunks.push(bytes.subarray(offset))
+      return concatChunks(chunks)
+    }
+
+    const segmentEnd = offset + 2 + segmentLength
+    if (!(marker === 0xe1 && payloadStartsWithExif(bytes, offset + 4, segmentEnd))) {
+      chunks.push(bytes.subarray(offset, segmentEnd))
+    }
+    offset = segmentEnd
+  }
+
+  if (offset < bytes.length) {
+    chunks.push(bytes.subarray(offset))
+  }
+  return concatChunks(chunks)
+}
+
+function payloadStartsWithExif(bytes: Uint8Array, start: number, end: number): boolean {
+  return (
+    start + 4 <= end &&
+    bytes[start] === 0x45 &&
+    bytes[start + 1] === 0x78 &&
+    bytes[start + 2] === 0x69 &&
+    bytes[start + 3] === 0x66
+  )
+}
+
+function concatChunks(chunks: Uint8Array[]): Uint8Array {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out
+}
+
 /** True if a JPEG buffer contains an APP1 Exif segment. */
 export async function jpegContainsExifApp1(blob: Blob): Promise<boolean> {
   if (blob.type && blob.type !== 'image/jpeg') {
@@ -151,17 +226,8 @@ export async function jpegContainsExifApp1(blob: Blob): Promise<boolean> {
       break
     }
 
-    if (marker === 0xe1) {
-      const payloadStart = offset + 4
-      if (
-        payloadStart + 4 <= bytes.length &&
-        bytes[payloadStart] === 0x45 &&
-        bytes[payloadStart + 1] === 0x78 &&
-        bytes[payloadStart + 2] === 0x69 &&
-        bytes[payloadStart + 3] === 0x66
-      ) {
-        return true
-      }
+    if (marker === 0xe1 && payloadStartsWithExif(bytes, offset + 4, offset + 2 + segmentLength)) {
+      return true
     }
 
     offset += 2 + segmentLength

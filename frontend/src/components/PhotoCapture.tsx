@@ -3,7 +3,8 @@
  *
  * Every photo is checked (imageValidation.ts) and then shrunk and stripped of
  * metadata (prepareImage.ts) before anything else sees it. Only that prepared
- * copy is passed up to App through onPhotoChange.
+ * copy is passed up to App through onPhotoChange. The file input does not set
+ * capture, so iPhone offers Photo Library as well as the camera.
  */
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { IMAGE_ACCEPT, validateImageFile } from '../imageValidation'
@@ -120,7 +121,6 @@ export function PhotoCapture({ onPhotoChange }: PhotoCaptureProps) {
         className="photo-input"
         type="file"
         accept={IMAGE_ACCEPT}
-        capture="environment"
         disabled={isPreparing}
         onChange={onFileChange}
       />
@@ -150,7 +150,7 @@ export function PhotoCapture({ onPhotoChange }: PhotoCaptureProps) {
       </div>
 
       {error ? (
-        <p className="photo-error" role="alert">
+        <p className="photo-error photo-problem" role="alert">
           {error}
         </p>
       ) : null}
