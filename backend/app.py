@@ -23,15 +23,24 @@ separate modules: image_validation.py (is the photo acceptable),
 vision_client.py (call OpenAI), candidates.py (check the answer),
 normalization.py (standard names), constraints.py (allergy filter), and
 recipe_search.py (retrieval, filtering, and ranking).
+
+When the frontend has been built, this same server also serves that page
+for every path that is not /api. When ACCESS_CODE is set, every /api call
+must send it; /health stays open so a host can check the process.
 """
 
 import logging
+import os
+import secrets
+from pathlib import Path
 from typing import Callable, Iterator, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.candidates import VisionOutputError, parse_vision_output
 from backend.config import load_explanation_settings, load_recipe_settings, load_vision_settings
@@ -58,6 +67,45 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 app = FastAPI(title="Pic2Food")
+
+# The built page lives next to the backend. Missing in local dev, where Vite serves it.
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+
+def configured_access_code() -> str:
+    """The shared access code, or empty when local runs should stay open.
+
+    A blank value counts as unset, so an empty ACCESS_CODE in .env does not
+    lock the app.
+    """
+    return os.getenv("ACCESS_CODE", "").strip()
+
+
+def access_code_matches(provided: Optional[str]) -> bool:
+    """True when no code is configured, or the header matches it.
+
+    The expected code is never logged. Lengths are compared first because
+    secrets.compare_digest rejects strings of different lengths.
+    """
+    expected = configured_access_code()
+    if not expected:
+        return True
+    if provided is None or len(provided) != len(expected):
+        return False
+    return secrets.compare_digest(provided, expected)
+
+
+@app.middleware("http")
+async def require_access_code(request: Request, call_next):
+    """When ACCESS_CODE is set, every /api call must send it in X-Access-Code.
+
+    /health and the page itself stay open. A rejection does not log the header.
+    """
+    if request.url.path.startswith("/api") and not access_code_matches(
+        request.headers.get("x-access-code")
+    ):
+        return JSONResponse(status_code=401, content={"error": "unauthorized"})
+    return await call_next(request)
 
 VisionCaller = Callable[[bytes], str]
 ExplanationCaller = Callable[[str], str]
@@ -89,6 +137,16 @@ def error_response(
 
 @app.get("/health")
 def health() -> dict:
+    return {"ok": True}
+
+
+@app.get("/api/access")
+def access() -> dict:
+    """Says the access code was accepted. The middleware already rejected a wrong one.
+
+    The body is only {"ok": true}. It never includes the code or the API key.
+    The page calls this first, so it can show the code screen before any photo.
+    """
     return {"ok": True}
 
 
@@ -309,3 +367,30 @@ def recipe_explanations(
         " ".join("{}={}".format(key, count) for key, count in sorted(outcomes.items())),
     )
     return {"explanations": results}
+
+
+class FrontendFiles(StaticFiles):
+    """Serve the built page. A path with no file returns index.html.
+
+    Registered after the API routes, so /api and /health are never swallowed.
+    Asset URLs (they have a file extension) still 404 when the file is missing.
+    """
+
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and "." not in Path(path).name:
+                return await super().get_response("index.html", scope)
+            raise
+
+
+def mount_frontend(application: FastAPI, directory: Path) -> None:
+    """Serve frontend/dist when a production build is present."""
+    if (directory / "index.html").is_file():
+        application.mount(
+            "/", FrontendFiles(directory=str(directory), html=True), name="frontend"
+        )
+
+
+mount_frontend(app, FRONTEND_DIST)

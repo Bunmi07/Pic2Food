@@ -8,6 +8,7 @@
  * with any unattributed or malformed recipe is rejected as a whole, so nothing
  * unsourced is ever shown.
  */
+import { readAccessCode, withAccessHeader } from './apiAccess.ts'
 import type { UserConstraints } from './constraints'
 
 export const RECIPE_SEARCH_TIMEOUT_MS = 30_000
@@ -154,16 +155,22 @@ export async function requestRecipeSearch(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetchImpl('/api/recipe-search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ingredients,
-        allergens: constraints.allergens,
-        avoid: constraints.avoid,
-      }),
-      signal: controller.signal,
-    })
+    const response = await fetchImpl(
+      '/api/recipe-search',
+      withAccessHeader(
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ingredients,
+            allergens: constraints.allergens,
+            avoid: constraints.avoid,
+          }),
+          signal: controller.signal,
+        },
+        readAccessCode(),
+      ),
+    )
     const body: unknown = await response.json().catch(() => null)
     return parseRecipeSearchResponse(response.status, body)
   } catch (error) {

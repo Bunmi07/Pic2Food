@@ -2,7 +2,7 @@
 
 Pic2Food turns a photo of food you already have into a few real recipes. You confirm the ingredients first. The app does not invent a recipe.
 
-This is v1.0, a local prototype. It runs on your computer. It is not hosted, so other people cannot open it on their phone yet. Hosting is the next step.
+v1.0 runs on your computer. v1.1 can also run as one private server that serves the page and the API. A shared access code keeps that copy off the public internet. It is not deployed until you put the container on Render.
 
 ## What v1.0 does
 
@@ -42,6 +42,30 @@ npm run dev
 Open http://localhost:5173/. The page talks to the backend through `/api`.
 
 Use a JPEG or PNG. iPhone HEIC photos are rejected on purpose, because the browser cannot reliably prepare them.
+
+## Private hosting
+
+Build the page, then let the Python server serve it. Do not set `VITE_CANDIDATE_SOURCE` for that build. The production page calls the live vision endpoint.
+
+```bash
+cd frontend && npm run build
+cd ..
+.venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+Leave `ACCESS_CODE` empty in `.env` for this. The app opens straight to the photo screen, the same as local development on port 5173.
+
+To require a code, set `ACCESS_CODE` in the environment before starting the server. The first screen asks for it and remembers it on that device. A wrong code says "That code didn't work." Every `/api` call must send the code in the `X-Access-Code` header. `/health` stays open. There is no per-visitor rate limit. The photo cap is still 5 MB, checked in `backend/image_validation.py`.
+
+The repo-root `Dockerfile` is what Render runs. The first stage builds the page (`npm ci` and `npm run build` in `frontend/`). The second installs `requirements.txt` and runs:
+
+```bash
+uvicorn server:app --host 0.0.0.0 --port $PORT
+```
+
+On Render, create a web service from this repo using that Dockerfile. Set `OPENAI_API_KEY`, `ACCESS_CODE`, and `MEALDB_API_KEY`. Render sets `PORT`. The OpenAI key stays on the server. It is not in the page or in API responses.
+
+`docker build` and `docker run` were not run here: Docker is not installed on this machine.
 
 ## Tests
 

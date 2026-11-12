@@ -7,6 +7,7 @@
  * facts. Any failure here just keeps the code-written lines, so it never
  * shows an error.
  */
+import { readAccessCode, withAccessHeader } from './apiAccess.ts'
 import type { UserConstraints } from './constraints'
 import { isNonEmpty, isRecord, MAX_EXPLANATION_LENGTH } from './recipeSearch.ts'
 
@@ -49,17 +50,23 @@ export async function requestExplanations(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetchImpl('/api/recipe-explanations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ingredients,
-        allergens: constraints.allergens,
-        avoid: constraints.avoid,
-        recipe_ids: recipeIds,
-      }),
-      signal: controller.signal,
-    })
+    const response = await fetchImpl(
+      '/api/recipe-explanations',
+      withAccessHeader(
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ingredients,
+            allergens: constraints.allergens,
+            avoid: constraints.avoid,
+            recipe_ids: recipeIds,
+          }),
+          signal: controller.signal,
+        },
+        readAccessCode(),
+      ),
+    )
     const body: unknown = await response.json().catch(() => null)
     return parseExplanationsResponse(response.status, body, recipeIds)
   } catch {
