@@ -7,6 +7,7 @@
  * so the app works without an OpenAI key. Either way the guesses are
  * validated here before the checklist sees them.
  */
+import { readAccessCode, withAccessHeader } from './apiAccess.ts'
 import { INGREDIENT_CANDIDATE_FIXTURE } from './fixtures/ingredientCandidates.ts'
 
 export const MAX_GUESSES_PER_ITEM = 3
@@ -162,11 +163,17 @@ export async function requestIngredientCandidates(
   try {
     const form = new FormData()
     form.append('photo', photo)
-    const response = await fetchImpl('/api/ingredient-candidates', {
-      method: 'POST',
-      body: form,
-      signal: controller.signal,
-    })
+    const response = await fetchImpl(
+      '/api/ingredient-candidates',
+      withAccessHeader(
+        {
+          method: 'POST',
+          body: form,
+          signal: controller.signal,
+        },
+        readAccessCode(),
+      ),
+    )
     const body: unknown = await response.json().catch(() => null)
     return interpretCandidateResponse(response.status, body)
   } catch (caught) {

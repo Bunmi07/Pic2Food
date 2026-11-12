@@ -249,10 +249,19 @@ Document only commands that have been verified to work:
 - Unit tests (frontend, Node built-in test runner, Node 24+): `cd frontend && npm test`
 - Type check and production build (frontend): `cd frontend && npm run build`
 - Linting (frontend): `cd frontend && npm run lint`
+- Built page served by the backend, checked on port 8010 after `cd frontend && npm run build` (no `VITE_CANDIDATE_SOURCE`): `.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8010`. With `ACCESS_CODE` unset, `/api/access` is open and the photo screen shows. With `ACCESS_CODE` set, a missing or wrong `X-Access-Code` header gets 401, `/health` stays open, and the page asks for the code before the photo screen. `docker build` is not listed: Docker is not installed on the machine where this was checked.
 
 This project intentionally uses two environments: a Python backend and a React + TypeScript frontend. Both must be scaffolded and verified before their commands are documented. Do not invent commands or add tooling beyond what the chosen stack requires.
 
 ## 9. Current Implementation Milestone
+Decided Nov 2026 (v1.1 hosting):
+
+- The app is hosted as one service: the Python backend serves the built frontend and /api from one address.
+- Hosted on Render (always-on paid plan), deployed from the main branch via Docker.
+- The hosted app requires one shared access code (ACCESS_CODE). No per-visitor limit for the first tester group; the OpenAI account's monthly spend cap is the safety net. A per-visitor photo limit is planned for the next, wider testing round.
+- The hosted app stays on TheMealDB's free key while private (Phases 1-5); a supporter key is bought and set as MEALDB_API_KEY before testers or any public link.
+- The Welcome screen tells users the app assumes they have salt, black pepper, cooking oil and water.
+- TheMealDB remains the recipe source through v1.1; a larger, regionally diverse source with cook time is v2 scope.
 
 Done (merged or on review branches):
 
@@ -266,7 +275,7 @@ Done (merged or on review branches):
 - Grounded explanation (`backend/explanations.py`, `POST /api/recipe-explanations`): every recipe card has a "Why this fits you" line built by code from the recipe and the user's ingredients. For the top three, an OpenAI model may reword that line. It sees only the recipe title, ingredients the user has, ingredients they'd need, and sugar swaps. Code adds "Recipes listing X were left out." Each model line is checked by code (length, no numbers or links, no words like "safe" or "healthy", no food that isn't in the recipe facts) and falls back to the code-built line if it fails, times out, or there's no API key. Model-worded lines are labelled "Worded by AI from this recipe and your ingredients." Settings: `EXPLANATION_MODEL`, `EXPLANATION_TIMEOUT_SECONDS`.
 - Deterministic evaluation set (`backend/evaluation.py`, `backend/data/evaluation_scenarios.json`, `backend/data/evaluation_catalog.json`): 14 labeled kitchens scored through the same search the app uses, against a frozen catalog. Checks are result state, recipe ids, hard constraints, source name and link, and the code-built explanation. A confirmed ingredient that clashes with an allergy or food to avoid is scored as a refused search. No photo and no model call.
 
-This is a local prototype: it runs on the developer's machine only and is not hosted.
+v1.0 is the local prototype. v1.1 phase 1 adds a private host path: one process serves `frontend/dist` and the API. It is not deployed to Render yet.
 
 Decided for these slices:
 

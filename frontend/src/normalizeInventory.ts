@@ -7,6 +7,8 @@
  * Unknown names are kept as typed, so recipe search can still try them.
  */
 
+import { readAccessCode, withAccessHeader } from './apiAccess.ts'
+
 export const NORMALIZE_TIMEOUT_MS = 10_000
 
 export type NormalizationResult =
@@ -68,12 +70,18 @@ export async function requestNormalization(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetchImpl('/api/normalize-ingredients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ingredients: names }),
-      signal: controller.signal,
-    })
+    const response = await fetchImpl(
+      '/api/normalize-ingredients',
+      withAccessHeader(
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ingredients: names }),
+          signal: controller.signal,
+        },
+        readAccessCode(),
+      ),
+    )
     const body: unknown = await response.json().catch(() => null)
     return parseNormalizationResponse(response.status, body, names)
   } catch {

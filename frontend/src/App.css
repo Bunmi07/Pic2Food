@@ -285,6 +285,29 @@
   color: var(--on-accent);
 }
 
+.access-code h1 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+  margin: 0.2rem 0 0.8rem;
+}
+
+.access-code label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--muted);
+}
+
+.access-code input {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
 .primary-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;

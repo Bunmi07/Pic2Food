@@ -9,6 +9,8 @@
  * Allergy choices stay in the browser session; they are never logged.
  */
 
+import { readAccessCode, withAccessHeader } from './apiAccess.ts'
+
 export const CONSTRAINT_CHECK_TIMEOUT_MS = 10_000
 export const MAX_AVOID_TERMS = 20
 export const MAX_AVOID_LENGTH = 60
@@ -123,16 +125,22 @@ export async function requestConstraintCheck(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const response = await fetchImpl('/api/check-constraints', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ingredients,
-        allergens: constraints.allergens,
-        avoid: constraints.avoid,
-      }),
-      signal: controller.signal,
-    })
+    const response = await fetchImpl(
+      '/api/check-constraints',
+      withAccessHeader(
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ingredients,
+            allergens: constraints.allergens,
+            avoid: constraints.avoid,
+          }),
+          signal: controller.signal,
+        },
+        readAccessCode(),
+      ),
+    )
     const body: unknown = await response.json().catch(() => null)
     return parseConstraintCheckResponse(response.status, body)
   } catch {
